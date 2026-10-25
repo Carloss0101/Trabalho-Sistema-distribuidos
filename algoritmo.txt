@@ -1,0 +1,130 @@
+Existem 3 tipos de pessoas no algoritmo:
+
+	ESPALHADOR -> Acredita na fake news e a compartilha
+	IGNORANTE  -> Ainda não recebeu nada da fake news
+	INATIVO    -> Recebeu a fake news, mas não a compartilha
+	
+###############################################################
+
+passo-a-passo
+
+
+executar_simulacao(linhas, colunas, geracoes, percentual_trabalhadores, limiar_convencimento, mostrar_grade)
+
+	linhas -> int
+	colunas -> int
+	geracoes -> int
+	percentual_trabalhadores -> float [0.01-1.0]
+	limiar_convencimento -> int 
+	mostrar_grade -> boolean
+
+	função motor do algoritmo. Recebe o numero de linhas e colunas que a grade deve 
+	ter, além da quantidade de vezes que o algoritmo deve rodar (geracoes). O limiar
+	de convencimento é o número minimo de vizinhos ESPALHADORES que uma célula IGNO-
+	RANTE deve ter para que ela se torne uma célula ESPALHADORA.
+
+	Começa a execução chamando a funcao criar_grade para que a grade de estado do 
+	algoritmo seja criada. Depois, a função contar_estados é chamada para contar
+	a quantidade de célular de cada tipo.
+	
+	A variavel inicio armazena uma instancia de time() para que o momento em que o algoritmo
+	iniciou seja gravado.
+	
+	Assim, um loop que itera até atingir o número de gerações alvo é iniciado. Imediatamente
+	a função proxima_geracao é chamada para determinar qual será o estado atual da grade.
+	A função contar_estados é chamada novamente para contar a quantidade de células de cada
+	tipo no estado novo da grade. Os detalhes da grade nova são mostrados na tela e caso a
+	flag mostrar_grade esteja ativada, a grade também é impressa. Caso a quantidade de espa-
+	lhadores seja 0, quer dizer que não tem como a fake news se espalhar mais, então o algo-
+	ritmo é terminado.
+	
+	A variavel fim recebe outra instancia de time() que representa quando o algoritmo terminou,
+	assim sendo possivel calcular o tempo de duração do mesmo.
+	
+	Por último, os detalhes finais do algoritmo são mostrados na tela. A contagem_final armazena
+	a contagem de cada tipo de célula no fim do algoritmo. Depois, a contagem e porcentagem de
+	cada tipo é mostrada na tela. É importante notar que a quantidade de espalhadores pode não
+	ser zero no fim, caso o limite de repetições do algoritmo (geracoes) seja atingido antes da
+	contagem destes zerar. 
+
+criar_grade(linhas, colunas, percentual_trabalhadores, semente)
+
+	linhas -> int
+	colunas -> int
+	percentual_trabalhadores -> float [0.01-1.0]
+
+	grade com tamanho <linhas> e <colunas> é criada, onde <percentual_espalhadores>
+	é a porcentagem do total de células - count_linhas*count_colunas - que vai come-
+	çar sendo espalhadores. Além disso, uma seed para geração de valores aleatórios
+	é passada como argumento também.
+
+contar_estados(grade):
+
+	grade -> int[][]
+
+	A função começa definindo um dicionário (hashmap) que serve para armazenar a contagem
+	dos três tipos de estados possiveis das celulas (INATIVO, IGNORANTE, ESPALHADOR). Depois,
+	um loop itera sobre todas as celulas da grade, fazneod a contagem. 
+
+	Por fim, o dicionário é retornado.
+
+proxima_geracao(grade, limiar_convencimento):
+
+	grade -> int[][]
+	limiar_convencimento -> int
+
+	Essa função determina o estado atual da matriz numa determinada iteração do algoritmo.
+	A variavel limiar_convencimento representa a quantidade minima de vizinhos espalhadores
+	que uma célula ignorante deve ter para que este vire espalhador também.
+
+	A função começa fazendo uma cópia profunda da grade antiga para uma variavel nova. Uma cópia
+	profunda faz com que todos os valores presentes na estrutura sejam instanciados novamente, então
+	uma alteração na grade nova não implica uma alteração na grade antiga. 
+
+	Depois, um loop itera sobre cada célula. Caso a célula atual seja ignorante, a funcao 
+	contar_vizinhos_espalhadores conta quantos vizinhos espalhadores aquele vizinho ignorante tem. A 
+	funcao faz isso usando o algoritmo vizinhanca de moore, onde uma vizinhanca de uma determinada cé-
+	lula é composta por todas a celulas no máximo uma posição à frente na vertical, horizontal e diago-
+	nal, (a propria célula nao compoe a vizinhanca). Caso a quantidade de vizinhos espalhadores seja
+	maior ou igual ao limiar_convencimento, a célula ignorante atual vira um espalhador também. Caso a
+	célula seja um espalhador, ela passa a ser um inativo. Por fim, um inativo continua inativo.
+
+	A nova grade é retornada.
+
+contar_vizinhos_espalhadores(grade, i, j):
+
+	grade -> int[][]
+	i -> int
+	j -> int
+
+	Essa função serve para contar quantos vizinhos espalhadores a célula grade[i][j] tem. A vizinhança de
+	Moore é usada para representar as células no máximo uma posicao à frente da célula atual na vertical,
+	horizontal e diagonal, assim:
+	
+			X X X 
+			X O X
+			X X X
+
+			X -> vizinhos; O -> célula atual
+
+	Uma variavel total é definida para contar quantos vizinhos espalhadores a célula grade[i][j] tem. Um loop
+	itera sobre as posições [i-1][j-1], [i-1][j], [i-1][j+1], [i][j-1], [i][j], [i][j+1], [i+1][j-1], [i+1][j] 
+	e [i+1][j+1]. A posição [0][0] é ignorada porque ela representa a própria célula sobre a qual a vizinhança
+	foi definida, e ela não faz parte da vizinhança. As variáveis ni e nj juntas formam a posição do vizinho
+	atual, e caso elas estejam dentro do limite da grade e sejam do tipo ESPALHADOR, a variável total é incre-
+	mentada.
+
+	A variável total é retornada, contendo a quantidade de vizinhos espalhadores da célula grade[i][j]
+
+imprimir_grade(grade, limite):
+
+	grade -> int[][]
+	limite -> int
+
+	Imprime (parte) da grade no terminal. A grade toda pode ser impressa, mas a formatação pode ficar bagunçada caso
+	esta tenha muitos elementos. 
+
+	O dicionário simbolos é definido para representar o caractere de cada tipo de célula. "." para IGNORANTE, "E" para
+	ESPALHADOR e "N" para INATIVO.
+
+	
