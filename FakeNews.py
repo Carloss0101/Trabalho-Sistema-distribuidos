@@ -16,10 +16,9 @@ def criar_grade(
     colunas, 
     pct_espalhadores=0.02, 
     pct_influenciadores=0.01, 
-    pct_resistentes=0.1, 
-    semente=42):
+    pct_resistentes=0.1):
 
-    random.seed(semente)
+    random.seed(datetime.now().timestamp())
 
     grade = [[IGNORANTE for _ in range(colunas)] for _ in range(linhas)]
 
@@ -181,9 +180,9 @@ def executar_simulacao(
         print(f'''
             ------------------------
             Geração {geracao + 1:03d}
-            Ignorantes:      {contagem[IGNORANTE]:>,}
-            Espalhadores:    {contagem[ESPALHADOR]:>,}
-            Resistentes:     {contagem[RESISTENTE]:>,}
+            Ignorantes:      {contagem[IGNORANTE]:,}
+            Espalhadores:    {contagem[ESPALHADOR]:,}
+            Resistentes:     {contagem[RESISTENTE]:,}
             Influenciadores: {contagem[INFLUENCIADOR]:,}
             Inativos:        {contagem[INATIVO]:,}
             ------------------------
@@ -212,7 +211,7 @@ def executar_simulacao(
     print(f"Resistentes finais: {contagem_final[RESISTENTE]:,} ({contagem_final[RESISTENTE] / total * 100:,.2f}%)")
     print(f"Influenciadores finais: {contagem_final[INFLUENCIADOR]:,} ({contagem_final[INFLUENCIADOR] / total * 100:,.2f}%)")
     print(f"Inativos finais: {contagem_final[INATIVO]:,} ({contagem_final[INATIVO] / total * 100:,.2f}%)")
-    print("=======================")
+    print("=======================\n")
 
 if __name__ == "__main__":
     executar_simulacao(
@@ -223,5 +222,5 @@ if __name__ == "__main__":
         pct_espalhadores=0.05,
 		pct_resistentes=0.1,
         limiar_convencimento=3,
-        mostrar_grade=True
+        mostrar_grade=False
     )
