@@ -36,7 +36,38 @@ import struct
 # módulo para chamadas de sistema
 import sys
 
+# type hints
+import typing
+
+'''
+Solicita a entrada do nó na rede
+
+Retorna um socket que será usado 
+para se comunicar com o nó mestre
+na rede
+''' 
 def entrada_rede():
+	# cria e prepara o nó que vai receber conexoes para computacao
+	server_socket = socket.socket(
+		socket.AF_INET, socket.SOCK_STREAM, socket,IPPROTO_TCP)
+	server_socket.bind(('localhost', 0))
+	server_socket.listen()
+
+	# montagem da mensagem de entrada na rede
+	# adaptar para o Tiny Protocol
+
+	return server_socket
+
+def calcular_grade(data: dict[str, Any]):
+	pass
 
 if __name__ == '__main__':
-	
+	s = entrada_rede()
+
+	while True:
+		conn_s, addr = s.accept()
+
+		# adaptar para o Tiny Protocol
+
+	s.shutdown(socket.SHUT_RDWR)
+	s.close()
