@@ -69,11 +69,39 @@
 import struct, pickle
 
 class Tiny:
+	"""
+	Classe que implementa o protocol TinyGrid
+	
+	########################################################################
+	O protocolo TinyGrid foi desenvolvido com o intuito de facilitar a comu-
+	nicão entre nós numa rede distribuída. O nome do protocolo vem da tarefa
+	principal executada pelos nós da rede: Manipular uma grade (2D List).
 
-	'''
-	Constroi o Tiny packet
-	Retorna a representacao binaria do pacote
-	'''
+	Methods
+	-------
+	build(tipo, req_req, source_port, row_start, row_end, column_start,
+		  column_end, base_grid)
+		Constrói o Tiny Packet e o retorna em formato binário
+
+	dismantle_fixed(packet)
+		Traduz os dados binários que representam os campos fixos do Tiny
+		packet e retorna uma tupla de 8 elementos representando cada um,
+		na ordem que são posicionados no pacote.
+
+	dismantle_data(data)
+		Usado quando o campo Data Length do pacote é diferente de 0, trans-
+		forma os dados binários presentes no campo Data em uma matriz que
+		pode representar uma das três opcões:
+			- Grade que serve como base para cálculo da grade da próxima
+			  geracão do algoritmo. (Enviada pelo nó mestre aos workers)
+			
+			- Parte da grade da nova geracão calculada por um dos nós tra-
+			  balhadores. (Enviada pelo worker ao nó mestre)
+
+			- Uma lista 2D que contém as listas de novos nós da rede e nós
+			  que saíram da rede. (Enviada pelo broker ao nó mestre)
+	"""
+
 	def build(
 			tipo:          int,
 			req_res:       int,
@@ -84,6 +112,40 @@ class Tiny:
 			column_end:    int,
 			base_grid:     bytes
 		):
+		'''
+		Constrói o Tiny Packet e o retorna em formato binário
+
+		Parameters
+		----------
+		tipo : int
+			Tipo da mensagem. Varia de 0 a 4
+		req_res : int
+			Requisicão (0) ou Resposta (1)
+		source_port : int
+			Porta que representa o nó remetente na rede
+		row_start : int 
+			Indice inicial da linha da grade que o nó worker é responsável por
+			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem 
+			que o tipo não é 0
+		row_end : int
+			Indice final da linha da grade que o nó worker é responsável por
+			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem
+			que o tipo não é 0
+		column_start : int
+			Indice inicial da coluna da grade que o nó worker é responsável por
+			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem
+			que o tipo não é 0
+		column_end: int
+			Indice final da coluna da grade que o nó worker é responsável por
+			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem
+			que o tipo não é 0
+
+		Returns
+		-------
+		tiny_packet : bytes
+			Pacote em formato binário que representa um pacote do protocolo
+			TinyGrid. Pode ou não conter uma grade no campo Data
+		'''
 
 		if base_grid:
 			base_grid_size = len(base_grid)
@@ -101,61 +163,88 @@ class Tiny:
 		if base_grid: tiny_packet += base_grid
 
 		return tiny_packet
-
-	'''
-	Transforma a representacao binaria do Tiny packet
-	em uma tupla contendo todos os campos fixos do
-	pacote. 
-
-	Como assim todos os campos fixos ?
-
-		Como o campo de Data do pacote pode variar de
-		tamanho, ele nunca é lido antes dos campos
-		fixos serem lidos e serializados. Então o que
-		vai acontecer é:
-
-			O nó vai receber os dados binários do 
-			pacote por meio do socket
-
-			Vai mandar os dados binários lidos para
-			a funcao dismantle_fixed
-
-			A funcao vai transformar os campos fixos
-			em uma tupla e retorná-los ao chamador.
-
-			Caso o campo Grid Size seja diferente de
-			zero, o nó vai receber o resto dos dados
-			binários e depois chamar a funcao dismantle_
-			data para converter a grade para um objeto
-			Python, já que esta vai estar em bytes.
-
-	retorna a tupla contendo os campos fixos do pacote
-	'''	
+	
 	def dismantle_fixed(packet: bytes):
+		'''
+		Traduz os dados binários que representam os campos fixos do Tiny Packet
+		e retorna uma tupla de 8 elementos representando cada um, na ordem que 
+		são posicionados no pacote.
+
+		Esse método extrai apenas os campos fixos porque não é obrigatório que 
+		todo Tiny Packet tenha uma grade no campo Data. Além disso, quando pre-
+		sente, a grade pode variar de tamanho a cada chamada. Assim, o fluxo de
+		operacões do nó que recebe um Tiny Packet deve ser:
+
+						Depois de receber os 24 bytes que representam
+						os campos fixos do pacote, ele chama o método
+						dismantle_fixed(packet)
+
+											|
+											v
+
+						Caso o campo Data Length seja diferente de 0, 
+						uma grade está presente, então ele deve rece-
+						ber o resto dos bytes enviados. A quantidade
+						total de bytes recebidos é igual ao valor
+						presente em Data Length
+
+											|
+											v
+
+						Com os bytes armazenados, ele deve chamar o 
+						método dismantle_data(data) para obter a gra-
+						de representada pelos bytes recebidos
+
+		Parameters
+		----------
+		packet : bytes
+			Os dados binários brutos que representam os campos fixos do 
+			Tiny Packet
+
+		Returns
+		-------
+		struct.unpack(...) : tuple
+			Tupla de 8 elementos, onde cada elemento representa um campo
+			fixo do Tiny Packet e é algum Objeto Python
+		'''
 		return struct.unpack(
 			'!BBHIIIII',
 			 packet
 		)
 
-	'''
-	Transforma dados binarios em uma grade
-
-	Na requisicao, o nó que destinatário vai usar
-	essa funcão pra obter a grade que será base 
-	para computacão da nova grade
-
-	Ao receber a respota, o nó mestre vai usar essa 
-	funcão para converter o formato binário da grade
-	calculada para um objeto python
-
-	Retorna a grade como uma matriz python (lista 2d)
-	'''
 	def dismantle_data(data: bytes):
+		'''
+		Usado quando o campo Data Length do pacote é diferente de 0, trans-
+		forma os dados binários presentes no campo Data em uma matriz que
+		pode representar uma das três opcões:
+			- Grade que serve como base para cálculo da grade da próxima
+			  geracão do algoritmo. (Enviada pelo nó mestre aos workers)
+			
+			- Parte da grade da nova geracão calculada por um dos nós tra-
+			  balhadores. (Enviada pelo worker ao nó mestre)
+
+			- Uma lista 2D que contém as listas de novos nós da rede e nós
+			  que saíram da rede. (Enviada pelo broker ao nó mestre)
+
+		Parameters
+		----------
+		data : bytes
+			Dados binários brutos que representam a grade enviada no campo
+			Data do Tiny Packet
+
+		Returns
+		-------
+		pickle.loads(data): list[list[int]]
+			Lista 2D que representa a grade enviada no campo Data do Tiny
+			Packet
+		'''
+
 		return pickle.loads(data)
 
 
-import socket
 
+
+	
 # O CÓDIGO ABAIXO SERVE APENAS PARA TESTES
 if __name__ == '__main__':
 
