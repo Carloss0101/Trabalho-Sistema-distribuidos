@@ -72,7 +72,6 @@ class Tiny:
 	"""
 	Classe que implementa o protocol TinyGrid
 	
-	########################################################################
 	O protocolo TinyGrid foi desenvolvido com o intuito de facilitar a comu-
 	nicão entre nós numa rede distribuída. O nome do protocolo vem da tarefa
 	principal executada pelos nós da rede: Manipular uma grade (2D List).
@@ -207,6 +206,7 @@ class Tiny:
 			Tupla de 8 elementos, onde cada elemento representa um campo
 			fixo do Tiny Packet e é algum Objeto Python
 		'''
+		
 		return struct.unpack(
 			'!BBHIIIII',
 			 packet
@@ -244,7 +244,7 @@ class Tiny:
 
 
 
-	
+
 # O CÓDIGO ABAIXO SERVE APENAS PARA TESTES
 if __name__ == '__main__':
 
