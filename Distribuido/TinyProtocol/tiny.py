@@ -78,16 +78,10 @@ class Tiny:
 
 	Methods
 	-------
-	build(tipo, req_req, source_port, row_start, row_end, column_start,
-		  column_end, base_grid)
-		Constrói o Tiny Packet e o retorna em formato binário
+	to_bytes(self)
+		Retorna o Tiny Packet em formato binário bruto
 
-	dismantle_fixed(packet)
-		Traduz os dados binários que representam os campos fixos do Tiny
-		packet e retorna uma tupla de 8 elementos representando cada um,
-		na ordem que são posicionados no pacote.
-
-	dismantle_data(data)
+	data_from_bytes(self)
 		Usado quando o campo Data Length do pacote é diferente de 0, trans-
 		forma os dados binários presentes no campo Data em uma matriz que
 		pode representar uma das três opcões:
@@ -99,46 +93,74 @@ class Tiny:
 
 			- Uma lista 2D que contém as listas de novos nós da rede e nós
 			  que saíram da rede. (Enviada pelo broker ao nó mestre)
+
+	has_data(self)
+		Verifica se o pacote tem uma grade presente no campo Data que deve
+		ser recebida
+
+	ffields_to_tinyobj(packet: bytes)
+		Transforma os campos fixos do Tiny Packet em um objeto do tipo
+		Tiny, contendo todos os campos fixos do pacote. O campo Data não
+		é preenchido porque não é confirmado que haverá uma grade presente
+		em todo os pacotes
 	"""
 
-	def build(
-			tipo:          int,
-			req_res:       int,
-			source_port:   int,
-			row_start:     int,
-			row_end:       int,
-			column_start:  int,
-			column_end:    int,
-			base_grid:     bytes
-		):
+	def __init__(self,
+		tipo:         int,
+		req_res:      int,
+		source_port:  int,
+		data_length:  int   = 0,
+		row_start:    int   = 0,
+		row_end:      int   = 0,
+		column_start: int   = 0,
+		column_end:   int   = 0,
+		data:         bytes = b''):
 		'''
-		Constrói o Tiny Packet e o retorna em formato binário
-
 		Parameters
 		----------
 		tipo : int
-			Tipo da mensagem. Varia de 0 a 4
+			Tipo da mensagem. Pode ter valores de 0 a 4
 		req_res : int
-			Requisicão (0) ou Resposta (1)
+			Indica Requisição (0) ou Resposta (1)
 		source_port : int
-			Porta que representa o nó remetente na rede
-		row_start : int 
+			Porta que representa o nó que está enviando
+			o pacote
+		data_length : int, optional
+			Tamanho em bytes da grade sendo enviada no pacote
+		row_start : int, optional
 			Indice inicial da linha da grade que o nó worker é responsável por
 			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem 
 			que o tipo não é 0
-		row_end : int
+		row_end : int, optional
 			Indice final da linha da grade que o nó worker é responsável por
-			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem
+			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem 
 			que o tipo não é 0
-		column_start : int
+		column_start : int, optional
 			Indice inicial da coluna da grade que o nó worker é responsável por
-			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem
+			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem 
 			que o tipo não é 0
-		column_end: int
+		column_end : int, optional
 			Indice final da coluna da grade que o nó worker é responsável por
-			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem
+			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem 
 			que o tipo não é 0
+		data : bytes, optional
+			Grade a ser enviada no pacote em formato binário.
+		'''
 
+		self.tipo         = tipo
+		self.req_res      = req_res
+		self.source_port  = source_port
+		self.data_length  = data_length if data_length else len(data)
+		self.row_start    = row_start
+		self.row_end      = row_end
+		self.column_start = column_start
+		self.column_end   = column_end
+		self.data         = data
+
+	def to_bytes(self):
+		'''
+		Constrói o Tiny Packet e o retorna em formato binário
+		
 		Returns
 		-------
 		tiny_packet : bytes
@@ -146,28 +168,64 @@ class Tiny:
 			TinyGrid. Pode ou não conter uma grade no campo Data
 		'''
 
-		if base_grid:
-			base_grid_size = len(base_grid)
-		else:
-			base_grid_size = 0
-
 		tiny_packet = struct.pack(
 			'!BBHIIIII',
-			tipo, req_res, source_port,
-			base_grid_size,
-			row_start, row_end,
-			column_start, column_end
+			self.tipo, self.req_res, self.source_port,
+			self.data_length,
+			self.row_start,    
+			self.row_end,
+			self.column_start, 
+			self.column_end
 		)
 
-		if base_grid: tiny_packet += base_grid
+		if self.data: tiny_packet += self.data
 
 		return tiny_packet
-	
-	def dismantle_fixed(packet: bytes):
+
+	def data_from_bytes(self):
 		'''
+		Usado quando o campo Data Length do pacote é diferente de 0, trans-
+		forma os dados binários presentes no campo Data em uma matriz que
+		pode representar uma das três opcões:
+			- Grade que serve como base para cálculo da grade da próxima
+			  geracão do algoritmo. (Enviada pelo nó mestre aos workers)
+			
+			- Parte da grade da nova geracão calculada por um dos nós tra-
+			  balhadores. (Enviada pelo worker ao nó mestre)
+
+			- Uma lista 2D que contém as listas de novos nós da rede e nós
+			  que saíram da rede. (Enviada pelo broker ao nó mestre)
+
+		Returns
+		-------
+		pickle.loads(self.data): list[list[int]]
+			Lista 2D que representa a grade enviada no campo Data do Tiny
+			Packet
+		'''
+
+		return pickle.loads(self.data)
+
+	def has_data(self):
+		'''
+		Determina se o pacote contém uma grade a ser recebida. Retorna 
+		True caso o atributo data_length seja diferente de 0, False 
+		caso contrário
+
+		Returns
+		-------
+		self.data_length != 0: bool
+			True caso tenha uma grade a ser recebida no pacote,
+			False caso contrário
+		'''
+
+		return self.data_length != 0
+
+	def ffields_to_tinyobj(packet: bytes):
+		'''
+		Fixed Fields to Tiny Object
+
 		Traduz os dados binários que representam os campos fixos do Tiny Packet
-		e retorna uma tupla de 8 elementos representando cada um, na ordem que 
-		são posicionados no pacote.
+		e retorna um objeto do tipo Tiny que representa o pacote.
 
 		Esse método extrai apenas os campos fixos porque não é obrigatório que 
 		todo Tiny Packet tenha uma grade no campo Data. Além disso, quando pre-
@@ -176,23 +234,25 @@ class Tiny:
 
 						Depois de receber os 24 bytes que representam
 						os campos fixos do pacote, ele chama o método
-						dismantle_fixed(packet)
+						ffields_to_tinyobj(packet)
 
 											|
 											v
 
-						Caso o campo Data Length seja diferente de 0, 
-						uma grade está presente, então ele deve rece-
-						ber o resto dos bytes enviados. A quantidade
-						total de bytes recebidos é igual ao valor
-						presente em Data Length
+						Ao chamar o método de instância has_data(), 
+						caso o valor retornado seja True, o campo
+						Data Length é != 0. Isso significa que uma
+						grade está presente, então é necessário re-
+						ceber o resto dos bytes enviados. A quanti-
+						dade total de bytes recebidos é igual ao va-
+						lor presente em Data Length
 
 											|
 											v
 
 						Com os bytes armazenados, ele deve chamar o 
-						método dismantle_data(data) para obter a gra-
-						de representada pelos bytes recebidos
+						método data_from_bytes() para obter a grade
+						representada pelos bytes recebidos
 
 		Parameters
 		----------
@@ -202,47 +262,22 @@ class Tiny:
 
 		Returns
 		-------
-		struct.unpack(...) : tuple
-			Tupla de 8 elementos, onde cada elemento representa um campo
-			fixo do Tiny Packet e é algum Objeto Python
+		Tiny(...) : Tiny
+			Objeto do tipo Tiny que representa um Tiny Packet
 		'''
 		
-		return struct.unpack(
+		data = struct.unpack(
 			'!BBHIIIII',
 			 packet
 		)
 
-	def dismantle_data(data: bytes):
-		'''
-		Usado quando o campo Data Length do pacote é diferente de 0, trans-
-		forma os dados binários presentes no campo Data em uma matriz que
-		pode representar uma das três opcões:
-			- Grade que serve como base para cálculo da grade da próxima
-			  geracão do algoritmo. (Enviada pelo nó mestre aos workers)
-			
-			- Parte da grade da nova geracão calculada por um dos nós tra-
-			  balhadores. (Enviada pelo worker ao nó mestre)
-
-			- Uma lista 2D que contém as listas de novos nós da rede e nós
-			  que saíram da rede. (Enviada pelo broker ao nó mestre)
-
-		Parameters
-		----------
-		data : bytes
-			Dados binários brutos que representam a grade enviada no campo
-			Data do Tiny Packet
-
-		Returns
-		-------
-		pickle.loads(data): list[list[int]]
-			Lista 2D que representa a grade enviada no campo Data do Tiny
-			Packet
-		'''
-
-		return pickle.loads(data)
-
-
-
+		return Tiny(
+			tipo=data[0], req_res=data[1], source_port=data[2],
+			data_length=data[3],
+			row_start=data[4],
+			row_end=data[5],
+			column_start=data[6],
+			column_end=data[7])
 
 
 # O CÓDIGO ABAIXO SERVE APENAS PARA TESTES
@@ -263,7 +298,7 @@ if __name__ == '__main__':
 	COLUMNSTART_req = 0
 	COLUMNEND_req = 3
 
-	packet = Tiny.build(
+	tiny_pck = Tiny(
 		tipo=TIPO_req,
 		req_res=REQRES_req,
 		source_port=SOURCEPORT_req,
@@ -271,19 +306,29 @@ if __name__ == '__main__':
 		row_end=ROWEND_req,
 		column_start=COLUMNSTART_req,
 		column_end=COLUMNEND_req,
-		base_grid=GRID_req
+		data=GRID_req
 	)
+
+	tiny_pck_b = tiny_pck.to_bytes()
 	#########################################################
+
+	# aqui seria o envio dos bytes por meio de sockets
 
 	# FLUXO DE DESEMPACOTAMENTO DO PACOTE CONTENDO A GRADE
 	#########################################################
 	# Os campos fixos tem um tamanho total de 24 bytes
-	fixed_fields_b = packet[:24]
-	fixed_fields = Tiny.dismantle_fixed(fixed_fields_b)
-	print(fixed_fields, end='\n\n')
+	fixed_fields_b = tiny_pck_b[:24]
+	tiny_pck = Tiny.ffields_to_tinyobj(fixed_fields_b)
+	print(tiny_pck.tipo, tiny_pck.req_res, tiny_pck.source_port)
+	print(tiny_pck.data_length)
+	print(tiny_pck.row_start)
+	print(tiny_pck.row_end)
+	print(tiny_pck.column_start)
+	print(tiny_pck.column_end, end='\n\n')
 
 	# converte a grade separadamente, como foi dito
-	grid_b = packet[24:]
-	grid = Tiny.dismantle_data(grid_b)
+	tiny_pck.data = tiny_pck_b[24:]
+	if tiny_pck.has_data():
+		grid = tiny_pck.data_from_bytes()
 	print(grid)
 	#########################################################

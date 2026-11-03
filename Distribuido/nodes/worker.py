@@ -13,7 +13,7 @@ from pathlib import Path
 # tiny protocol
 tiny_path = Path('../TinyProtocol')
 sys.path.append(str(tiny_path))
-import Tiny
+import tiny
 
 '''
 Solicita a entrada do nó na rede
@@ -31,40 +31,39 @@ def entrada_rede():
 
 	# pacote de requisicao para entrada na rede
 	porta = server_socket.getsockname()[1]
-	packet = Tiny.Tiny.build(
-		2, 0, porta,
-		0, 0, 0, 0,
-		None
-	)
+	packet = tiny.Tiny(
+		tipo=2, req_res=0, source_port=porta
+	).to_bytes()
 
 	# socket para envio do pacote de requisicao
 	s = socket.socket(
 		socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
 	code = s.connect_ex(('localhost', 5555))
 	if code != 0:
-		print('NÃO FOI POSSÍVEL SE CONECTAR AO BROKER (5555)')
+		print(f'ERRO: WORKER ({porta}) NÃO SE CONECTOU AO BROKER (5555)')
 		sys.exit(1)
 	s.sendall(packet)
 
 	# recebimento da resposta de entrada na rede
-	data_b = b''
-	while len(data_b) < 24:
-		data_b += s.recv(24)
+	tiny_pck_b = b''
+	while len(tiny_pck_b) < 24:
+		tiny_pck_b += s.recv(24)
 
 	s.shutdown(socket.SHUT_RDWR)
 	s.close()
 
 	# desserialização do pacote de resposta
-	data = Tiny.Tiny.dismantle_fixed(data_b)
-	if data[0]==2 and data[1]==1 and data[2]==5555:
-		print(f'ENTRADA BEM SUCEDIDA - PORTA {porta}')
+	tiny_pck = tiny.Tiny.ffields_to_tinyobj(tiny_pck_b)
+	if (tiny_pck.tipo==2 and tiny_pck.req_res==1 and
+		tiny_pck.source_port==5555):
+		print(f'ENTRADA BEM SUCEDIDA - WORKER ({porta})')
 		return server_socket
 
-	print(f'ERRO: NÓ {porta} NÃO CONSEGUIU ENTRAR NA REDE')
+	print(f'ERRO: WORKER ({porta}) NÃO CONSEGUIU ENTRAR NA REDE')
 	sys.exit(1)
 
 # requisicao do tipo 0, calculo da nova grade
-def req_tipo_zero(data: tuple, base_grid: list[list[int]]):
+def req_tipo_zero(tiny_pck: tiny.Tiny, base_grid: list[list[int]]):
 	pass
 
 if __name__ == '__main__':
@@ -73,20 +72,19 @@ if __name__ == '__main__':
 	while True:
 		conn_s, addr = s.accept()
 
-		data_b = b''
-		while len(data_b) < 24:
-			data_b += conn_s.recv(24)
+		tiny_pck_b = b''
+		while len(tiny_pck_b) < 24:
+			tiny_pck_b += conn_s.recv(24)
 
-		data = Tiny.Tiny.dismantle_fixed(data_b)
+		tiny_pck = tiny.Tiny.ffields_to_tinyobj(tiny_pck_b)
 
 		resp = None
 		match data[0]:
 			case 0:
-				grid_b = b''
-				while len(grid_b) < data[3]:
-					grid_b += conn_s.recv(data[3])
-				grid = Tiny.Tiny.dismantle_data(grid_b)
-				resp = req_tipo_zero(data, grid)
+				while len(tiny_pck.data) < tiny_pck.data_length:
+					tiny_pck.data += conn_s.recv(tiny_pack.data_length)
+				grid = tiny_pck.data_from_bytes()
+				resp = req_tipo_zero(tiny_pck, grid)
 			case 4:
 				conn_s.shutdown(socket.SHUT_RDWR)
 				conn_s.close()
