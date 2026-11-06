@@ -81,9 +81,7 @@ def req_tipo_dois(tiny_pck: tiny.Tiny, node_update: list[list[int]]):
 		tipo=tiny_pck.tipo, req_res=1, source_port=5555
 	).to_bytes()
 
-	# debug
-	print('LISTA DE NÓS NOVOS ATUALIZADA')
-	print(node_update[0])
+	print(f'ENTRADA DE NÓ - ({node_update[0][-1]})', end='\n\n')
 
 	return packet
 
@@ -116,9 +114,7 @@ def req_tipo_tres(tiny_pck: tiny.Tiny, node_update: list[list[int]]):
 		tipo=tiny_pck.tipo, req_res=1, source_port=5555
 	).to_bytes()
 
-	# debug
-	print('LISTA DE NÓS REMOVIDOS ATUALIZADA')
-	print(node_update[1])
+	print(f'SAÍDA DE NÓ - ({node_update[1][-1]})', end='\n\n')
 
 	return packet
 
@@ -147,6 +143,8 @@ if __name__ == '__main__':
 	# node_update[0] -> novos nós
 	# node_update[1] -> nós que saíram
 	node_update = [[],[]]
+
+	print(f'BROKER (5555) - ATIVO', end='\n\n')
 
 	while True:
 		conn_s, src_addr = s.accept()
