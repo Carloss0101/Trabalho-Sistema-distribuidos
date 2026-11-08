@@ -190,9 +190,9 @@ def executar_simulacao(
 
         if mostrar_grade: imprimir_grade(grade)
 
-        if not contagem[ESPALHADOR]:
-            print("\nA propagação terminou: não há mais espalhadores.")
-            break
+        # if not contagem[ESPALHADOR]:
+        #     print("\nA propagação terminou: não há mais espalhadores.")
+        #     break
 
     fim = datetime.now().timestamp()
 
