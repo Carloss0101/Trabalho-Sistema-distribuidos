@@ -18,6 +18,9 @@ import tiny
 # conversão de grade para bytes e bytes para grade
 import pickle
 
+# multi-threading para concorrência em operações I/O
+import threading
+
 def req_tipo_um(tiny_pck: tiny.Tiny, node_update: list[list[int]]):
 	'''
 	Trata mensagens do tipo 1. As mensagens do tipo 1 são enviadas

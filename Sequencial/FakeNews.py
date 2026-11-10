@@ -18,7 +18,8 @@ def criar_grade(
     pct_influenciadores=0.01, 
     pct_resistentes=0.1):
 
-    random.seed(datetime.now().timestamp())
+    #random.seed(datetime.now().timestamp())
+    random.seed(1)
 
     grade = [[IGNORANTE for _ in range(colunas)] for _ in range(linhas)]
 
@@ -166,6 +167,16 @@ def executar_simulacao(
         f"{pct_espalhadores * 100:.2f}% "
         f"({contagem_inicial[ESPALHADOR]:,} espalhadores reais)"
     )
+    print(
+        f"Percentual inicial de influenciadores: "
+        f"{pct_influenciadores * 100:.2f}% "
+        f"({contagem_inicial[INFLUENCIADOR]:,} espalhadores reais)"
+    )
+    print(
+        f"Percentual inicial de resistentes: "
+        f"{pct_resistentes * 100:.2f}% "
+        f"({contagem_inicial[RESISTENTE]:,} espalhadores reais)"
+    )
     print(f"Limiar de convencimento: {limiar_convencimento} vizinhos")
     print("=======================================================")
     print()
@@ -215,12 +226,12 @@ def executar_simulacao(
 
 if __name__ == "__main__":
     executar_simulacao(
-        linhas=100,
-        colunas=100,
+        linhas=250,
+        colunas=250,
         geracoes=50,
         pct_influenciadores=0.01,
         pct_espalhadores=0.05,
 		pct_resistentes=0.1,
-        limiar_convencimento=3,
-        mostrar_grade=False
+        limiar_convencimento=2,
+        mostrar_grade=True
     )

@@ -85,49 +85,27 @@ def req_tipo_zero(
 	'''
 
 	# tuple[0] -> grade calculada;
-	# tuple[1] -> dicionario de contagem de estados; 
-	new_grid, count_st = fakenews.proxima_geracao_contar_estados(
+	# tuple[1] -> inteiro (0 ou 1) que sinaliza existencia de ESPALHADOR 
+	new_grid, esp_existe = fakenews.proxima_geracao_contar_estados(
 		tiny_pck, 
 		base_grid,
 		limiar
 	)
 
-	count_st_b = pickle.dumps(count_st)
 	new_grid_b = pickle.dumps(new_grid)
-	result_b = count_st_b+new_grid_b
+	esp_existe_b = int.to_bytes(esp_existe)
+	result_b = new_grid_b + esp_existe_b
 
-	# Pensei numa coisa pra resolver o problema de enviar apenas
-	# o tamanho da grade no campo Data length:
-	# Tipo assim, eu sempre vou mandar isso de volta pro nó mes-
-	# tre, depois de ele ter enviado pro cálculo. Por esse fato,
-	# e também pelo fato de que eu não altero o tamanho da grade
-	# (o cálculo é feito sobre a grade enviada), o nó mestre já
-	# tem o tamanho da grade enviada, então eu nao preciso man-
-	# dar de volta
-
-	# Dito isso, é possivel fazer o seguinte: 
-	# Empacota os dois (new_grid e count_st) para dados binários
-	# brutos, porém concatena com o dicionario count_st na frente,
-	# e no campo Data Length coloca o tamanho dele, ao inves de
-	# colocar o tamanho da grade, que o nó mestre ja tem. Na hora
-	# de receber o pacote, o nó mestre lê o dicionario primeiro, 
-	# antes da grade. Após ler o dicionario, basta ler o restan-
-	# dos bytes que representam a grade.
-
-	# No envio da grade junto com o limiar pelo nó mestre eu não
-	# preciso fazer isso porque o limiar vai sempre variar de va-
-	# lores entre 1 e 8 (inclusivo). A representação binária do
-	# maior valor possível é 1000 (8), que ocupa 4 bits. Assim,
-	# eu preciso ler no máximo 1 byte de dados na função recv()
-	# do socket. Esse ja ta implementado, é só olhar na main
-	# quando o match cai no case 0.
+	# O envio da grade junto com o valor que representa se espalhadores
+	# ainda existem segue o mesmo padrao que o envio da grade + limiar
+	# para calculo partindo do nó mestre para os nós trabalhadores. 
 	return tiny.Tiny(
 		tipo=tiny_pck.tipo, req_res=1, source_port=source_port,
 		row_start=tiny_pck.row_start, 
 		row_end=tiny_pck.row_end,
 		column_start=tiny_pck.column_start, 
 		column_end=tiny_pck.column_end,
-		data_length=len(count_st_b),
+		data_length=len(new_grid_b),
 		data=result_b
 	).to_bytes()
 
@@ -148,11 +126,21 @@ def req_tipo_quatro(tiny_pck: tiny.Tiny, source_port: int):
 		tipo=tiny_pck.tipo, req_res=1, source_port=source_port
 	).to_bytes()
 
+# acho que essa funcao é pra caso eu saia abruptamente da rede
+# com CTRL + C. Ai tipo, eu criaria uma thread que chama essa
+# funcao e dentro dessa funcao eu ficaria esperando por um
+# input que seja CTRL + C. Caso esse input venha, eu apenas
+# inicio uma comunicacao rapida com o no broker pra enviar
+# uma mensagem do tipo 3 e sinalizar minha saida da rede
+def cleanup():
+	pass
+
 if __name__ == '__main__':
 	s = entrada_rede()
 
+	conn_s, addr = s.accept()
+
 	while True:
-		conn_s, addr = s.accept()
 
 		tiny_pck_b = b''
 		while len(tiny_pck_b) < 24:
@@ -188,12 +176,12 @@ if __name__ == '__main__':
 
 		if resp: conn_s.sendall(resp)
 
-		conn_s.shutdown(socket.SHUT_RDWR)
-		conn_s.close()
-
 		if tiny_pck.tipo==4: break
 
 	print(f'WORKER ({s.getsockname()[1]}) SAINDO DA REDE...', end='\n\n')
+
+	conn_s.shutdown(socket.SHUT_RDWR)
+	conn_s.close()
 
 	s.shutdown(socket.SHUT_RDWR)
 	s.close()

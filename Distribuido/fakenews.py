@@ -75,9 +75,45 @@ def contar_vizinhos(
 
 			if (0 <= ni < len(grid) and
 				0 <= nj < len(grid[0])):
-				vizinhos[grid[ni[nj]]] += 1
+				vizinhos[grid[ni][nj]] += 1
 
 	return vizinhos
+
+def contar_estados(grid: list[list[int]]):
+	'''
+	Conta e devolve os estados presentes na grade
+
+	Essa funcão segue a implementacão padrão da funcão 
+	contar_estados() presente no algoritmo sequencial
+	e serve apenas para fazer a primeiro contagem de 
+	estados no estágio de iniciacão do algoritmo
+
+	Parameters
+	----------
+	grid : list[list[int]]
+		Grade sobre a qual a contagem será realizada
+
+	Returns
+	-------
+	estados_count: dict[int, int]
+		Dicionário contendo a contagem de cada tipo de célula
+
+
+	'''
+
+	estados_count = {
+		IGNORANTE:     0,
+		ESPALHADOR:    0,
+		INATIVO:       0,
+		INFLUENCIADOR: 0,
+		RESISTENTE:    0
+	}
+
+	for l in grid:
+		for e in l:
+			estados_count[e] += 1
+
+	return estados_count
 
 def proxima_geracao_contar_estados(
 	tiny_pck:  tiny.Tiny,
@@ -121,10 +157,10 @@ def proxima_geracao_contar_estados(
 
 	Returns
 	-------
-	(n_grid, estado_count) : tuple
-		Tupla que contém a grade com a parte atualizada e o dicionário
-		contendo a contagem de estados na parte da grade que o nó fi-
-		cou responsável
+	(n_grid, espalhador_existe) : tuple
+		Tupla que contém a grade com a parte atualizada e um valor
+		inteiro que pode ser 1 ou 0, dependendo se a contagem de
+		estados tem pelo menos um ESPALHADOR ou se todos acabaram
 	'''
 
 	i_start, i_end = tiny_pck.row_start,    tiny_pck.row_end
@@ -132,8 +168,8 @@ def proxima_geracao_contar_estados(
 
 	col_count = len(base_grid[0])
 	cel_count = abs(
-		(i_start   * col_count + j_start) -
-		((i_end-1) * col_count + (j_end-1))
+		(i_start * col_count + j_start) -
+		(i_end   * col_count + j_end)
 	) + 1
 
 	n_grid = deepcopy(base_grid)
@@ -174,7 +210,7 @@ def proxima_geracao_contar_estados(
 
 		estados_count[n_grid[i][j]] += 1
 
-		if j+1 >= len(grid[i]):
+		if j+1 >= len(base_grid[i]):
 			i += 1
 			j = 0
 		else:
@@ -182,7 +218,7 @@ def proxima_geracao_contar_estados(
 
 		cel_count -= 1
 
-	return (n_grid, estado_count)
+	return (n_grid, 1 if estados_count[ESPALHADOR] != 0 else 0)
 
 def criar_grade(
 	count_lin: int,
@@ -212,21 +248,22 @@ def criar_grade(
 		Grade do algoritmo
 	'''
 
-	random.seed(datetime.now().timestamp())
+	#random.seed(datetime.now().timestamp())
+	random.seed(1)
 
-	grid = [[IGNORANTE for _ in range(count_col) for _ in range(count_lin)]]
+	grid = [[IGNORANTE for _ in range(count_col)] for _ in range(count_lin)]
 
-	for _ in range(count_lin*count_col*pct_esp):
+	for _ in range(int(count_lin*count_col*pct_esp)):
 		i = random.randint(0, count_lin-1)
 		j = random.randint(0, count_col-1)
 		grid[i][j] = ESPALHADOR
 
-	for _ in range(count_lin*count_col*pct_inf):
+	for _ in range(int(count_lin*count_col*pct_inf)):
 		i = random.randint(0, count_lin-1)
 		j = random.randint(0, count_col-1)
 		grid[i][j] = INFLUENCIADOR
 
-	for _ in range(count_lin*count_col*pct_res):
+	for _ in range(int(count_lin*count_col*pct_res)):
 		i = random.randint(0, count_lin-1)
 		j = random.randint(0, count_col-1)
 		grid[i][j] = RESISTENTE
@@ -235,7 +272,7 @@ def criar_grade(
 
 def print_grid(
 	grid: list[list[int]],
-	lim:  int = 50):
+	lim:  int = 30):
 	'''
 	Imprime a grade
 	
@@ -256,8 +293,53 @@ def print_grid(
 		RESISTENTE:    'R'
 	}
 	
-	for i in range(min(len(grade, lim))):
-		for j in range(min(len(grade[i], lim))):
-			print(simbolos[grade[i][j]], end=' ')
+	for i in range(min(len(grid), lim)):
+		for j in range(min(len(grid[i]), lim)):
+			print(simbolos[grid[i][j]], end=' ')
 		print()
 	print()
+
+def saudacao_alg(
+	grid:      list[list[int]],
+	pct_esp:   float,
+	pct_inf:   float,
+	pct_res:   float,
+	count_ger: int,
+	limiar:    int):
+	'''
+	'''
+
+	l, c = len(grid), len(grid[0])
+
+	count_estados = contar_estados(grid)
+
+	print("=== SIMULAÇÃO DISTRIBUÍDA DE PROPAGAÇÃO DE FAKE NEWS ===")
+	print("========================================================")
+	print(f'Grade: {l} x {c} - {l*c} Pessoas')
+	print(f'Gerações: {count_ger}')
+	print(f'Pct. inicial de espalhadores: {pct_esp*100:.2f}%',
+		f'   - {count_estados[ESPALHADOR]} espalhadores reais')
+	print(f'Pct. inicial de influenciadores: {pct_inf*100:.2f}%',
+		f'- {count_estados[INFLUENCIADOR]} influenciadores reais')
+	print(f'Pct. inicial de resistentes: {pct_res*100:.2f}%',
+		f'   - {count_estados[RESISTENTE]} resistentes reais')
+	print(f'Limiar de convencimento: {limiar} vizinhos')
+	print("========================================================")
+	print()
+
+def estatisticas_finais(
+    total: int,
+    contagem_final:  dict[int. int]):
+    '''
+    '''
+
+    print(f'Ignorantes finais: {contagem_final[IGNORANTE]:,}          \
+    	 ({contagem_final[IGNORANTE] / total * 100:,.2f}%)')
+    print(f'Espalhadores finais: {contagem_final[ESPALHADOR]:,}       \
+    	 ({contagem_final[ESPALHADOR] / total * 100:,.2f}%)')
+    print(f'Resistentes finais: {contagem_final[RESISTENTE]:,}        \
+    	 ({contagem_final[RESISTENTE] / total * 100:,.2f}%)')
+    print(f'Influenciadores finais: {contagem_final[INFLUENCIADOR]:,} \
+    	 ({contagem_final[INFLUENCIADOR] / total * 100:,.2f}%)')
+    print(f'Inativos finais: {contagem_final[INATIVO]:,}              \
+    	 ({contagem_final[INATIVO] / total * 100:,.2f}%)')

@@ -45,13 +45,13 @@
 #			   que deverá ser computada. É inclusivo - 32 bits
 #
 #	Row End: Indica o índice final da linha que dará origem à grade que
-#			 deverá ser computada. É exclusivo
+#			 deverá ser computada. É inclusivo
 #
 #	Column Start: Indica o indice inicial da coluna que dará origem à grade
 #				  que deverá ser computada. É inclusivo
 #
 #	Column End: Indica o índice final da coluna que dará origem à grade 
-#				que deverá ser computada. É exclusivo			
+#				que deverá ser computada. É inclusivo			
 #
 #	Data: Os dados enviados no pacote. Na requisicão, será a grade base para
 #		  computacão da grade da nova geracão. Na resposta, será a grade re-
@@ -294,9 +294,9 @@ if __name__ == '__main__':
 	REQRES_req = 0
 	SOURCEPORT_req = 5555
 	ROWSTART_req = 0
-	ROWEND_req = 3
+	ROWEND_req = 2
 	COLUMNSTART_req = 0
-	COLUMNEND_req = 3
+	COLUMNEND_req = 2
 
 	tiny_pck = Tiny(
 		tipo=TIPO_req,
