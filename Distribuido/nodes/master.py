@@ -305,82 +305,42 @@ def update_worker_list(workers, cel_count: int):
 		if rem_worker in active_workers:
 			del workers[rem_worker]
 
+# aqui ta errado porque nao ta atualizando a grade original
+# depois da computacao. Porém como eu vou implementar essa
+# funcao de forma que ela apenas chame handle_conn(), pode
+# deixar assim por enquanto
 def backup_handle_conn(
 	healthy_workers: list[int],
 	args:            tuple):
 	'''
+
+	args = (
+		grid, grid_b, int.to_bytes(limiar),
+		divisao_celulas[i], curr_pl, workers, 
+		worker
+	)
+
+	future = executor.submit(handle_conn,
+		args[0], args[1], args[2], args[3],
+		args[4], args[5], args[6]
+	)
+
 	'''
 
 	if len(healthy_workers) == 0:
 		raise WorkerFailException()
 
-	col_count = len(args[0][0])
-
-	# calculo da posicao inicial da divisao de celulas
-	row_start = int(args[4] / col_count)
-	col_start = args[4] % col_count
-
-	# calculo da posicao final da divisao de celulas
-	row_end = int((args[4]+(args[3]-1)) / col_count)
-	col_end = (args[4]+(args[3]-1)) % col_count
-
-	# so lembrando que agora row_end e column_end sao
-	# inclusivos no protocolo TinyGrid
-	t0 = tiny.Tiny(
-		tipo=0, req_res=0, source_port=8888,
-		data_length=len(grid_b),
-		row_start=row_start, row_end=row_end,
-		column_start=col_start, column_end=col_end,
-		data=args[1] + args[2]
-	)
-
-	t0_b = t0.to_bytes()
-
 	ans = False
-
 	for worker in healthy_workers:
-		conn_s = args[6][worker]['s']
+		try:
+			ans = handle_conn(
+				args[0], args[1], args[2],
+				args[3], args[4], args[5], args[6])
+			return ans
+		except WorkerFailException:
+			args[5][args[6]]['h'] = False
 
-		conn_s.sendall(t0_b)
-
-		t0_ans_b = b''
-		while len(t0_ans_b) < 24:
-			try:
-				t0_ans_b += conn_s.recv(24)
-			except TimeoutError:
-				args[5][worker]['h'] = False
-				break
-
-		if len(t0_ans_b) < 24: continue
-
-		t0_ans = tiny.Tiny.ffields_to_tinyobj(t0_ans_b)
-
-		while len(t0_ans.data) < t0_ans.data_length:
-			try:
-				t0_ans.data += conn_s.recv(t0_ans.data_length)
-			except TimeoutError:
-				args[6][worker]['h'] = False
-				break
-
-		grid = t0_ans.data_from_bytes()
-
-		esp_existe_b = b''
-		while len(esp_existe_b) < 1:
-			try:
-				esp_existe_b += conn_s.recv(1)
-			except TimeoutError:
-				args[5][worker]['h'] = False
-				break
-
-		if len(esp_existe_b) < 1: continue
-
-		esp_existe = int.from_bytes(esp_existe_b)
-
-		ans = bool(esp_existe)
-
-		break
-
-	return ans
+	raise WorkerFailException()
 
 def master_backup(args: tuple):
 	col_count = len(args[0][0])
@@ -511,14 +471,6 @@ if __name__ == '__main__':
 					worker
 				)
 
-				# base_grid:      list[list[int]],
-				# base_grid_b:    bytes,
-				# limiar_b:       bytes,
-				# cel_count:      int,
-				# posicao_linear: int,
-				# workers:        dict,
-				# worker:         int):
-
 				future = executor.submit(handle_conn,
 					args[0], args[1], args[2], args[3],
 					args[4], args[5], args[6]
@@ -544,6 +496,8 @@ if __name__ == '__main__':
 					# de uma geração, o remove da rede
 					if args[5][args[6]]['h'] == False:
 						del args[5][args[6]]
+					else:
+						args[5][args[6]] = False
 
 					future = executor.submit(
 						backup_handle_conn, 
@@ -565,11 +519,6 @@ if __name__ == '__main__':
 					if ans: next_ger = True
 				
 				except WorkerFailException:
-					# caso o nó esteja unhealthy a mais
-					# de uma geração, o remove da rede
-					if args[5][args[6]]['h'] == False:
-						del args[5][args[6]]
-
 					master_node_calc.append(args)
 
 			# agora o nó mestre calcula as partes da grade
