@@ -1,5 +1,5 @@
 import random
-from multiprocessing import RawArray, Process, Barrier
+from multiprocessing import RawArray, RawValue, Process, Barrier
 from worker import worker
 import time
 
@@ -89,10 +89,15 @@ def executar_paralelo(linhas=100, colunas=100, nw=4, seed=42,
 
     barreira = Barrier(nw)       
 
+    #arrey que guarda se houve mudanca no trabalho des cada worker
+    mudancas = RawArray('b', nw)  
+
+    geracao_parada = RawValue('i', geracoes) 
+
     processos = []
     for k in range(len(faixas)):
         ini, fim = faixas[k]
-        p = Process(target=worker, args=(k, ini, fim, barreira, bufA, bufB, linhas, colunas, geracoes, limiar_convencimento))
+        p = Process(target=worker, args=(k, ini, fim, barreira, bufA, bufB, linhas, colunas, geracoes, limiar_convencimento, mudancas, geracao_parada))
         processos.append(p)
 
     inicio = time.perf_counter()
@@ -107,13 +112,15 @@ def executar_paralelo(linhas=100, colunas=100, nw=4, seed=42,
     fim = time.perf_counter()
     tempo_total = fim - inicio
 
-    final = bufA if geracoes % 2 == 0 else bufB
+    final = bufA if geracao_parada.value % 2 == 0 else bufB
+    
     contagem = [0] * 5
     for x in final:
         contagem[x] += 1
 
     total = linhas * colunas
-    print("=== RESULTADO FINAL (PARALELO) ===")
+    print(f"=== RESULTADO FINAL (PARALELO - Parou na geração {geracao_parada.value}) ===")
+    print(f"Tempo total de execução: {tempo_total:.4f} segundos")
     print(f"Ignorantes:      {contagem[IGNORANTE]:,} ({contagem[IGNORANTE] / total * 100:.2f}%)")
     print(f"Espalhadores:    {contagem[ESPALHADOR]:,} ({contagem[ESPALHADOR] / total * 100:.2f}%)")
     print(f"Resistentes:     {contagem[RESISTENTE]:,} ({contagem[RESISTENTE] / total * 100:.2f}%)")
@@ -123,6 +130,7 @@ def executar_paralelo(linhas=100, colunas=100, nw=4, seed=42,
     print("=== RESULTADO FINAL (PARALELO) ===")
     print(f"Tempo total de execução: {tempo_total:.4f} segundos")
     print(f"Ignorantes:      {contagem[IGNORANTE]:,} ({contagem[IGNORANTE] / total * 100:.2f}%)")
+
 
 if __name__ == "__main__":
     executar_paralelo(linhas=100, nw=4)

@@ -45,13 +45,37 @@ def nova_celula(buf, i, j, linhas, colunas, limiar):
 
     return estado  
 
-def worker(k, ini, fim, barreira, bufA, bufB, linhas, colunas, geracoes, limiar):
+def worker(k, ini, fim, barreira, bufA, bufB, linhas, colunas, geracoes, limiar, mudancas, geracao_parada):
     atual, proximo = bufA, bufB
 
     for g in range(geracoes):
+        teve_mudanca = 0 
+
         for i in range(ini, fim):
             for j in range(colunas):
-                proximo[i * colunas + j] = nova_celula(atual, i, j, linhas, colunas, limiar)
 
+                #quarda estado atual da celula
+                indice = i * colunas + j
+                estado_atual = atual[indice]
+
+                #calculo da proxima geracao e salva em proximo
+                novo_estado = nova_celula(atual, i, j, linhas, colunas, limiar)
+                proximo[indice] = novo_estado
+
+                #em caso de mudança, troca pra 1
+                if novo_estado != estado_atual:
+                    teve_mudanca = 1
+
+        #anota alteracao(0 ou 1)
+        mudancas[k] = teve_mudanca
+
+        #espera todos os workers terminarem a geracao antes de continuar
         barreira.wait()
+
+        #se nao houve mudanca, para a simulacao e anota a geracao que parou
+        if sum(mudancas) == 0:
+            if k == 0:
+                geracao_parada.value = g + 1
+            break 
+
         atual, proximo = proximo, atual
