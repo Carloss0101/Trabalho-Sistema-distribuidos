@@ -1,3 +1,9 @@
+'''Script do nó worker
+
+Esse script contém todas as funcionalidades do nó worker para exercer sua
+função na execução do algoritmo distribuído
+'''
+
 # módulo para comunicação com outros nós da rede
 import socket
 
@@ -26,15 +32,16 @@ from copy import deepcopy
 # serialização de objetos python em dados binários brutos
 import pickle
 
-'''
-Solicita a entrada do nó na rede
-
-Retorna um socket que será usado 
-para se comunicar com o nó mestre
-na rede
-''' 
 def entrada_rede():
 	'''
+	Processo de entrada do nó worker na rede
+
+	Returns
+	-------
+	server_socket : socket.socket
+		Socket usado pelo nó worker na rede
+		para se comunicar com o master. A porta desse socket
+		também é usada para identificar o worker na rede
 	'''
 
 	# criação do socket que vai representar o nó na rede
@@ -81,6 +88,24 @@ def req_tipo_zero(
 	base_grid:   list[list[int]], 
 	source_port: int):
 	'''
+	Trata mensagem do tipo 0. As mensagens do tipo 0 são enviadas
+	pelo nó mestre para os nós trabalhadores para o cálculo da no-
+	va geracão
+
+	Parameters
+	----------
+	tiny_pck : tiny.Tiny
+		Objeto Tiny Packet
+	base_grid : list[list[int]]
+		Particao da grade pela qual o nó trabalhador será 
+		responsável
+	source_port : int
+		Porta identificador do nó trabalhador na rede
+
+	Returns 
+	-------
+	Objeto Tiny Packet : tiny.Tiny
+		Objeto Tiny Packet
 	'''
 
 	# tuple[0] -> grade calculada;
@@ -106,6 +131,13 @@ def req_tipo_quatro(tiny_pck: tiny.Tiny, source_port: int):
 	Trata mensagem do tipo 4. As mensagens do tipo 4 são enviadas pelo
 	nó mestre para sinalizar o fim da execução do algoritmo
 
+	Parameters
+	----------
+	tiny_pck : tiny.Tiny
+		Objeto Tiny Packet
+	source_port : int
+		Porta identificadora do nó na rede
+
 	Returns
 	-------
 	packet : bytes
@@ -117,15 +149,6 @@ def req_tipo_quatro(tiny_pck: tiny.Tiny, source_port: int):
 	return tiny.Tiny(
 		req_res=1, tipo=tiny_pck.tipo, source_port=source_port
 	).to_bytes()
-
-# acho que essa funcao é pra caso eu saia abruptamente da rede
-# com CTRL + C. Ai tipo, eu criaria uma thread que chama essa
-# funcao e dentro dessa funcao eu ficaria esperando por um
-# input que seja CTRL + C. Caso esse input venha, eu apenas
-# inicio uma comunicacao rapida com o no broker pra enviar
-# uma mensagem do tipo 3 e sinalizar minha saida da rede
-def cleanup():
-	pass
 
 if __name__ == '__main__':
 	s = entrada_rede()
@@ -161,9 +184,6 @@ if __name__ == '__main__':
 
 	print(f'WORKER ({s.getsockname()[1]}) SAINDO DA REDE...', end='\n\n')
 
-	# conn_s.shutdown(socket.SHUT_RDWR)
 	conn_s.close()
-
-	# s.shutdown(socket.SHUT_RDWR)
+	
 	s.close()
-

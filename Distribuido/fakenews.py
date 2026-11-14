@@ -30,6 +30,25 @@ def update_grid(
 	part_grid: list[list[int]],
 	indices:   tuple):
 	'''
+	Atualiza a grade original (base_grid) com os valores
+	calculados contidos na particão (part_grid)
+
+	Parameters
+	----------
+	base_grid : list[list[int]]
+		Grade original (completa) usada no algoritmo
+	part_grid : list[list[int]]
+		Particão da grade calculada pelo nó worker
+		(sem as células adicionais)
+	indices : tuple
+		Tupla contendo os indices da grade original
+		que deram origem à particão (Não são os r 
+		indices)
+
+	Returns
+	-------
+	base_grid : list[list[int]]
+		Grade original atualizada
 	'''
 
 	row_start, col_start, row_end, col_end = indices
@@ -52,6 +71,28 @@ def particionar_grade(
 	cel_count:  int,
 	pos_linear: int):
 	'''
+	Particiona a grade original em uma mini-grade
+	de <cel_count> elementos que vai ser calculada
+	por algum nó trabalhador da rede
+
+	Parameters
+	----------
+	base_grid : list[list[int]]
+		Grade original completa
+	cel_count : int
+		Quantidade de células que a particao vai ter
+	pos_linear : int
+		Posicao linear (na grade completa) do primeiro
+		elemento da grade particionada
+
+	Returns
+	-------
+	(part_grid, indices, r-indices) : tuple
+		Tupla contendo a grade particionada, os indices do
+		primeiro elemento e ultimo elemento da grade parti-
+		cionada na grade original, e os indices do primeiro
+		e ultimo elemento da grade particionada na grade ori-
+		ginal, porém contando as células extras
 	'''
 
 	row_count = len(base_grid)
@@ -196,21 +237,6 @@ def proxima_geracao_contar_estados(
 	da apenas para contar estados (ou pior, que seria o nó mestre
 	ter que contar todos os estados depois)
 
-	Sobre o cálculo da quantidade de células presentes na parte da
-	grade que está entre (row_start, column_start) - (row_end, col-
-	umn_end):
-
-		Dada uma coordenada qualquer a[i][j], para calcular sua po-
-		sição linear numa matriz MxN (0-indexed):
-
-			PL = i * N + j
-
-		Agora, para saber a quantidade de elementos presentes entre 
-		dois elementos quaisquer (inclusivo), calcule a PL dos dois
-		elementos, PL1 e PL2.
-
-			Quantidade de elementos = |PL1 - PL2| + 1
-
 	Parameters
 	----------
 	tiny_pck : Tiny
@@ -223,7 +249,7 @@ def proxima_geracao_contar_estados(
 
 	Returns
 	-------
-	(n_grid, espalhador_existe) : tuple
+	(clean_grid, espalhador_existe) : tuple
 		Tupla que contém a grade com a parte atualizada e um valor
 		inteiro que pode ser 1 ou 0, dependendo se a contagem de
 		estados tem pelo menos um ESPALHADOR ou se todos acabaram
@@ -387,6 +413,22 @@ def saudacao_alg(
 	count_ger: int,
 	limiar:    int):
 	'''
+	Imprime informacões iniciais do algoritmo
+
+	Parameters
+	----------
+	grid : list[list[int]]
+		Grade inicial
+	pct_esp : float
+		Porcentagem de espalhadores na rede
+	pct_inf : float
+		Porcentagem de influenciadores na rede
+	pct_res : float
+		Porcentagem de resistentes na rede
+	count_ger : int
+		Contagem de geracões do algoritmo
+	limiar : int 
+		Limiar de convencimento utilizado no algoritmo
 	'''
 
 	l, c = len(grid), len(grid[0])
@@ -409,8 +451,17 @@ def saudacao_alg(
 
 def estatisticas_finais(
     total: int,
-    contagem_final:  dict[int. int]):
+    contagem_final:  dict[int, int]):
     '''
+    Imprime estatistica finais do algoritmo
+
+    Parameters
+    ----------
+    total: int
+    	contagem total de células da grade
+    contagem_final : dict[int, int]
+    	Dicionário contendo a contagem final
+    	de cada estado na grade
     '''
 
     print(f'Ignorantes finais: {contagem_final[IGNORANTE]:,}          \

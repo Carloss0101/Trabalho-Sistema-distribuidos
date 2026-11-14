@@ -1,3 +1,9 @@
+'''Script do nó broker
+
+Esse script contém todas as funcionalidades do nó broker para exercer sua
+função na execução do algoritmo distribuído
+'''
+
 # módulo para comunicação com outros nós da rede
 import socket
 
@@ -28,8 +34,8 @@ def req_tipo_um(tiny_pck: tiny.Tiny, node_update: list[list[int]]):
 
 	Parameters
 	----------
-	data : tuple
-		Tupla que contém os campos fixos do Tiny Packet
+	tiny_pck : tiny.Tiny
+		Objeto Tiny packet
 	node_update: list[list[int]]
 		Lista bidimensional que representa a tabela de nós que 
 		entraram e saíram da rede. O primeiro elemento é a lista
@@ -62,8 +68,8 @@ def req_tipo_dois(tiny_pck: tiny.Tiny, node_update: list[list[int]]):
 
 	Parameters
 	----------
-	data : tuple
-		Tupla que contém os campos fixos do Tiny Packet
+	tiny_pck : tiny.Tiny
+		Objeto Tiny Packet
 	node_update : list[list[int]]
 		Lista bidimensional que representa a tabela de nós que 
 		entraram e saíram da rede. O primeiro elemento é a lista
@@ -95,8 +101,8 @@ def req_tipo_tres(tiny_pck: tiny.Tiny, node_update: list[list[int]]):
 
 	Parameters
 	----------
-	data : tuple
-		Tupla que contém os campos fixos do Tiny Packet
+	tiny_pck : tiny.Tiny
+		Objeto Tiny Packet
 	node_update : list[list[int]]
 		Lista bidimensional que representa a tabela de nós que 
 		entraram e saíram da rede. O primeiro elemento é a lista
@@ -125,6 +131,11 @@ def req_tipo_quatro(tiny_pck: tiny.Tiny):
 	'''
 	Trata mensagem do tipo 4. As mensagens do tipo 4 são enviadas pelo
 	nó mestre para sinalizar o fim da execução do algoritmo
+
+	Parameters
+	----------
+	tiny_pck : tiny.Tiny
+		Objeto Tiny Packet
 
 	Returns
 	-------
@@ -178,12 +189,10 @@ if __name__ == '__main__':
 
 		if resp: conn_s.sendall(resp)
 
-		# conn_s.shutdown(socket.SHUT_RDWR)
 		conn_s.close()
 
 		if tiny_pck.tipo==4: break
 
 	print('BROKER (5555) saindo da rede...')
 
-	# s.shutdown(socket.SHUT_RDWR)
 	s.close()

@@ -1,3 +1,9 @@
+'''Script do nó master
+
+Esse script contém todas as funcionalidades do nó master para exercer sua
+função na execução do algoritmo distribuído
+'''
+
 # módulo para chamadas de sistema
 import sys
 
@@ -61,22 +67,6 @@ def dividir_grade(
 
 	return divisao_celulas
 
-# args = (
-# 	grid, 
-
-# 	fakenews.particionar_grade(
-# 		grid, divisao_celulas[i], curr_pl),
-
-# 	limiar, divisao_celulas[i], 
-# 	curr_pl, workers, worker
-# )
-
-# future = executor.submit(handle_conn,
-# 	args[0], args[1], args[2], args[3],
-# 	args[4], args[5], args[6]
-# )
-
-
 def handle_conn(
 	base_grid:       list[list[int]],
 	part_grid_tuple: tuple,
@@ -130,13 +120,13 @@ def handle_conn(
 		não é retornado porque como a referencia
 		da grade é passada para a funcao, seus 
 		valores sao atualizados aqui mesmo
+
+	Raises
+	------
+	WorkerFailException 
+		Sinaliza falha de worker na rede
 	'''
 
-	# aqui cuida caso o numero de nos seja maior
-	# que o necessario. Ai tipo, caso algum no
-	# acabe ficando sem celulas pra calcular, nao
-	# precisa de todo o overhead de troca de infor-
-	# macoes, só deixa ele quieto
 	if not cel_count: return True
 
 	part_grid = part_grid_tuple[0]
@@ -201,25 +191,18 @@ def setup_master_node():
 	workers : dict
 		Dicionário que armazena os nós da rede
 		
-		 VOU TER QUE MUDAR ESSA DESCRIÇÃO PORQUE AGORA TEM
-		 APENAS OS NÓS DA REDE COMO UM TODO E SEU ESTADO É
-		 REPRESENTADO UNICAMENTE PELA VARIAVEL 'h'.
-		O dicionário contém duas chaves diferentes: 'ativos' e 
-		'suspensos'.  A chave 'ativos' representa os nós que a-
-		cabaram de entrar na rede e/ou os devolveram sua parte na 
-		última geração do algoritmo. Nós que ficam duas rodadas 
-		suspensos são removidos da rede.  
-		Cada chave representa outro dicionário onde cada chave é
-		um inteiro e seu valor é a porta do respectivo nó worker
-		na rede. Por último, cada porta representa outro dicionário
-		que tem os seguintes elementos: o socket usado para troca 
-		de informações com o mesmo e um valor booleano que indica 
-		se o nó está "healthy", ou seja, ele interagiu com o nó 
-		mestre na ultima iteração do algoritmo ou acabou de entrar 
-		na rede, quando o nó não responde a uma requisição de cál-
-		culo do nó mestre, esse valor 'h' vira False. Ao ficar duas
-		rodadas seguidas com esse valor setado em False, o nó é remo-
-		vido da rede. Uma representação visual:
+		Cada item do dicionário é um par key-value
+		onde a key é a porta identificadora do nó
+		trabalhador na rede e o value é outro
+		dicionário que contém seu socket de conexão
+		com o nó master e seu estado na rede. 
+
+		Quando um nó worker não devolve sua parte 
+		da computação, seu estado passa de True
+		para False. Na próxima geração, caso ele
+		devolva sua parte da computação, seu esta-
+		do volta para True e caso contrário, o nó
+		é removido da rede.
 
 			workers: {
 				1234: {
@@ -236,8 +219,23 @@ def setup_master_node():
 
 	return {}
 
-def update_worker_list(workers, cel_count: int):
+def update_worker_list(workers: dict, cel_count: int):
 	'''
+	Atualiza o conjunto de nós ativos na rede.
+	Para tal, uma mensagem do tipo 1 é enviada ao nó broker,
+	que devolve um lista 2d contendo os nós que entraram na
+	rede e os nós que saíram. Para cada nó que entra, o master
+	estabelece uma conexão TCP e salva esse socket no dicioná-
+	rio do worker. Para cada nó que sai, seu socket de conexão
+	é fechado e ele é removido da lista de active_workers
+
+	Parameters
+	----------
+	workers : dict
+		Dicionário que contém todos os nós ativos na rede
+	cel_count : int
+		Quantidade total de células na grade. Usada para
+		calcular o timeout do socket com os workers 
 	'''
 
 	b_s = socket.socket(
@@ -299,26 +297,35 @@ def update_worker_list(workers, cel_count: int):
 			workers[rem_worker]['s'].close()
 			del workers[rem_worker]
 
-# aqui ta errado porque nao ta atualizando a grade original
-# depois da computacao. Porém como eu vou implementar essa
-# funcao de forma que ela apenas chame handle_conn(), pode
-# deixar assim por enquanto
 def backup_handle_conn(
 	healthy_workers: list[int],
 	args:            tuple):
 	'''
+	Função backup para caso algum nó da rede não devolva sua
+	parte da computação em determinada geração. Em cada gera-
+	ção, quando um nó conclui e devolve sua parte da computa-
+	ção para o nó mestre, sua porta identificadora é adicionada
+	a uma lista de nós saudáveis. Essa lista é iterada sobre 
+	aqui dentro, e quando o primeiro nó consegue concluir a com-
+	putação, a iteração para e retorna o resultado
 
-	args = (
-		grid, grid_b, int.to_bytes(limiar),
-		divisao_celulas[i], curr_pl, workers, 
-		worker
-	)
+	Parameters
+	----------
+	healthy_workers : list[int]
+		Lista de nós saudáveis na rede
+	args : tuple
+		Tupla com os argumentos passados para a função 
+		handle_conn cujo nó não devolveu o resultado
 
-	future = executor.submit(handle_conn,
-		args[0], args[1], args[2], args[3],
-		args[4], args[5], args[6]
-	)
+	Returns
+	-------
+	ans : bool
+		Sinal de existência de espalhadores na rede
 
+	Raises
+	------
+	WorkerFailException
+		Sinaliza falha de worker na rede
 	'''
 
 	if len(healthy_workers) == 0:
@@ -329,14 +336,29 @@ def backup_handle_conn(
 		try:
 			ans = handle_conn(
 				args[0], args[1], args[2], args[3],
-				args[4], args[5], args[6])
+				args[4], args[5], worker)
 			return ans
 		except WorkerFailException:
-			args[5][args[6]]['h'] = False
+			args[5][worker]['h'] = False
 
 	raise WorkerFailException()
 
 def master_backup(args: tuple):
+	'''
+	Função backup caso nenhum dos nós saudáveis da lista
+	retorne o resultado da computação na função
+	backup_handle_conn()
+
+	Parameters
+	----------
+	args : tuple
+		Argumentos passados pra função handle_conn()
+
+	Returns
+	-------
+	ans : bool
+		Sinal de existência de espalhadores na rede
+	'''
 	
 	part_grid = args[1][0]
 	indices = args[1][1]
@@ -365,6 +387,13 @@ def master_backup(args: tuple):
 
 def clean_network(workers: dict):
 	'''
+	Limpa a rede mandando mensagens do tipo 4 para 
+	todos os nós presentes (incluindo o broker)
+
+	Parameters
+	----------
+	workers : dict
+		Dicionário de workers ativos na rede
 	'''
 
 	# pacote do tipo 4
@@ -389,26 +418,6 @@ def clean_network(workers: dict):
 		s.sendall(t_b)
 		s.close()
 
-# o comando para rodar o script master.py recebe como argumento
-# de linha de comando os seguintes parâmetros:
-#
-#	linhas : int 
-#		quantidade de linhas da grade
-#	colunas : int
-#		quantidade de colunas da grade
-#	geracoes : int
-#		quantidade de geracoes do algoritmo
-#	pct_inf : float
-#		porcentagem de influenciadores
-#	pct_esp : float
-#		porcentagem de espalhadores
-#	pct_res : float
-#		porcentagem de resistentes
-#	limiar : int
-# 		limiar de convencimento das células
-#	show_grid : int
-#		opcao para imprimir ou nao a grade,
-#		pode ser 0 (n imp) ou qlqr outro (imp)
 if __name__ == '__main__':
 	# setup do master node na rede
 	workers = setup_master_node()

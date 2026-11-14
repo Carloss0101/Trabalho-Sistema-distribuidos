@@ -1,5 +1,8 @@
-# Implementação do Tiny Protocol. O protocolo foi criado com o único intuito
-# de facilitar a comunição dos nós da rede distribuída.
+'''Implementação do Tiny Protocol
+
+O Tiny Protocol foi criado com o intuito de facilitar e padronizar a
+comunicação dos nós na rede
+'''
 
 #    0                   1                   2                   3
 #    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -167,15 +170,11 @@ class Tiny:
 	data_from_bytes(self)
 		Usado quando o campo Data Length do pacote é diferente de 0, trans-
 		forma os dados binários presentes no campo Data em uma matriz que
-		pode representar uma das três opcões:
-			- Grade que serve como base para cálculo da grade da próxima
-			  geracão do algoritmo. (Enviada pelo nó mestre aos workers)
-			
-			- Parte da grade da nova geracão calculada por um dos nós tra-
-			  balhadores. (Enviada pelo worker ao nó mestre)
-
-			- Uma lista 2D que contém as listas de novos nós da rede e nós
-			  que saíram da rede. (Enviada pelo broker ao nó mestre)
+		pode representar uma das duas opcões:
+			- Parte da grade que o nó worker vai realizar a computacão
+			  sobre (Enviada do nó mestre aos workers)
+			- Parte da grade sobre a qual o nó trabalhador realizou
+			  a computacão (Enviada do worker ao nó mestre)
 
 	has_data(self)
 		Verifica se o pacote tem uma grade presente no campo Data que deve
@@ -193,7 +192,7 @@ class Tiny:
 		tipo:         int,
 		source_port:  int,
 		esp_ex:       int   = 0,
-		limiar:       int   = 0, # depois disso tem um padding de 7 bits 0
+		limiar:       int   = 0,
 		row_start:    int   = 0,
 		col_start:    int   = 0,
 		row_end:      int   = 0,
@@ -326,15 +325,11 @@ class Tiny:
 		'''
 		Usado quando o campo Data Length do pacote é diferente de 0, trans-
 		forma os dados binários presentes no campo Data em uma matriz que
-		pode representar uma das três opcões:
-			- Grade que serve como base para cálculo da grade da próxima
-			  geracão do algoritmo. (Enviada pelo nó mestre aos workers)
-			
-			- Parte da grade da nova geracão calculada por um dos nós tra-
-			  balhadores. (Enviada pelo worker ao nó mestre)
-
-			- Uma lista 2D que contém as listas de novos nós da rede e nós
-			  que saíram da rede. (Enviada pelo broker ao nó mestre)
+		pode representar uma das duas opcões:
+			- Parte da grade que o nó worker vai realizar a computacão
+			  sobre (Enviada do nó mestre aos workers)
+			- Parte da grade sobre a qual o nó trabalhador realizou
+			  a computacão (Enviada do worker ao nó mestre)
 
 		Returns
 		-------
@@ -372,7 +367,7 @@ class Tiny:
 		sente, a grade pode variar de tamanho a cada chamada. Assim, o fluxo de
 		operacões do nó que recebe um Tiny Packet deve ser:
 
-						Depois de receber os 24 bytes que representam
+						Depois de receber os 40 bytes que representam
 						os campos fixos do pacote, ele chama o método
 						ffields_to_tinyobj(packet)
 
