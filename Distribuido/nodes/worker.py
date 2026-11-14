@@ -46,7 +46,7 @@ def entrada_rede():
 	# pacote de requisicao para entrada na rede
 	porta = server_socket.getsockname()[1]
 	packet = tiny.Tiny(
-		tipo=2, req_res=0, source_port=porta
+		req_res=0, tipo=2, source_port=porta
 	).to_bytes()
 
 	# socket para envio do pacote de requisicao
@@ -60,8 +60,8 @@ def entrada_rede():
 
 	# recebimento da resposta de entrada na rede
 	tiny_pck_b = b''
-	while len(tiny_pck_b) < 24:
-		tiny_pck_b += s.recv(24)
+	while len(tiny_pck_b) < 40:
+		tiny_pck_b += s.recv(40)
 
 	s.shutdown(socket.SHUT_RDWR)
 	s.close()
@@ -79,8 +79,7 @@ def entrada_rede():
 def req_tipo_zero(
 	tiny_pck:    tiny.Tiny, 
 	base_grid:   list[list[int]], 
-	source_port: int,
-	limiar:      int):
+	source_port: int):
 	'''
 	'''
 
@@ -89,24 +88,17 @@ def req_tipo_zero(
 	new_grid, esp_existe = fakenews.proxima_geracao_contar_estados(
 		tiny_pck, 
 		base_grid,
-		limiar
 	)
 
 	new_grid_b = pickle.dumps(new_grid)
-	esp_existe_b = int.to_bytes(esp_existe)
-	result_b = new_grid_b + esp_existe_b
 
-	# O envio da grade junto com o valor que representa se espalhadores
-	# ainda existem segue o mesmo padrao que o envio da grade + limiar
-	# para calculo partindo do nó mestre para os nós trabalhadores. 
 	return tiny.Tiny(
-		tipo=tiny_pck.tipo, req_res=1, source_port=source_port,
-		row_start=tiny_pck.row_start, 
-		row_end=tiny_pck.row_end,
-		column_start=tiny_pck.column_start, 
-		column_end=tiny_pck.column_end,
+		req_res=1, esp_ex=esp_existe,tipo=tiny_pck.tipo, 
+		source_port=source_port,
+		row_start=tiny_pck.row_start, col_start=tiny_pck.col_start, 
+		row_end=tiny_pck.row_end, col_end=tiny_pck.col_end,
 		data_length=len(new_grid_b),
-		data=result_b
+		data=new_grid_b
 	).to_bytes()
 
 def req_tipo_quatro(tiny_pck: tiny.Tiny, source_port: int):
@@ -123,7 +115,7 @@ def req_tipo_quatro(tiny_pck: tiny.Tiny, source_port: int):
 	'''
 
 	return tiny.Tiny(
-		tipo=tiny_pck.tipo, req_res=1, source_port=source_port
+		req_res=1, tipo=tiny_pck.tipo, source_port=source_port
 	).to_bytes()
 
 # acho que essa funcao é pra caso eu saia abruptamente da rede
@@ -143,8 +135,8 @@ if __name__ == '__main__':
 	while True:
 
 		tiny_pck_b = b''
-		while len(tiny_pck_b) < 24:
-			tiny_pck_b += conn_s.recv(24)
+		while len(tiny_pck_b) < 40:
+			tiny_pck_b += conn_s.recv(40)
 
 		tiny_pck = tiny.Tiny.ffields_to_tinyobj(tiny_pck_b)
 
@@ -155,21 +147,10 @@ if __name__ == '__main__':
 					tiny_pck.data += conn_s.recv(tiny_pck.data_length)
 				grid = tiny_pck.data_from_bytes()
 				
-				# tenho que lembrar de enviar o limiar concatenado logo
-				# após a grade no pacote enviado pelo mestre. Nesse caso,
-				# o bagulho é serializar a grade com pickle.dumps() e depois
-				# serializar o limiar com int.to_bytes(), concatenar as duas
-				# strings de bytes e enfiar no campo Data do pacote.
-				# É meio gambiarra, mas fodasse
-				limiar_b = b''
-				while len(limiar_b) < 1:
-					limiar_b += conn_s.recv(1)
-				
 				resp = req_tipo_zero(
 					tiny_pck, 
 					grid, 
 					s.getsockname()[1], 
-					int.from_bytes(limiar_b)
 				)
 			case 4:
 				resp = req_tipo_quatro(tiny_pck, s.getsockname()[1])
@@ -180,9 +161,9 @@ if __name__ == '__main__':
 
 	print(f'WORKER ({s.getsockname()[1]}) SAINDO DA REDE...', end='\n\n')
 
-	conn_s.shutdown(socket.SHUT_RDWR)
+	# conn_s.shutdown(socket.SHUT_RDWR)
 	conn_s.close()
 
-	s.shutdown(socket.SHUT_RDWR)
+	# s.shutdown(socket.SHUT_RDWR)
 	s.close()
 

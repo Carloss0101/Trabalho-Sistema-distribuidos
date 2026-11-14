@@ -61,14 +61,30 @@ def dividir_grade(
 
 	return divisao_celulas
 
+# args = (
+# 	grid, 
+
+# 	fakenews.particionar_grade(
+# 		grid, divisao_celulas[i], curr_pl),
+
+# 	limiar, divisao_celulas[i], 
+# 	curr_pl, workers, worker
+# )
+
+# future = executor.submit(handle_conn,
+# 	args[0], args[1], args[2], args[3],
+# 	args[4], args[5], args[6]
+# )
+
+
 def handle_conn(
-	base_grid:      list[list[int]],
-	base_grid_b:    bytes,
-	limiar_b:       bytes,
-	cel_count:      int,
-	posicao_linear: int,
-	workers:        dict,
-	worker:         int):
+	base_grid:       list[list[int]],
+	part_grid_tuple: tuple,
+	limiar:          int,
+	cel_count:       int,
+	pos_linear:      int,
+	workers:         dict,
+	worker:          int):
 	'''
 	Manda parte da grade para cálculo para algum
 	nó da rede representado pelo parâmetro worker
@@ -123,24 +139,21 @@ def handle_conn(
 	# macoes, só deixa ele quieto
 	if not cel_count: return True
 
-	col_count = len(base_grid[0])
+	part_grid = part_grid_tuple[0]
+	indices = part_grid_tuple[1]
+	r_indices = part_grid_tuple[2]
 
-	# calculo da posicao inicial da divisao de celulas
-	row_start = int(posicao_linear / col_count)
-	col_start = posicao_linear % col_count
+	part_grid_b = pickle.dumps(part_grid)
 
-	# calculo da posicao final da divisao de celulas
-	row_end = int((posicao_linear+(cel_count-1)) / col_count)
-	col_end = (posicao_linear+(cel_count-1)) % col_count
-
-	# so lembrando que agora row_end e column_end sao
-	# inclusivos no protocolo TinyGrid
 	t0 = tiny.Tiny(
-		tipo=0, req_res=0, source_port=8888,
-		data_length=len(grid_b),
-		row_start=row_start, row_end=row_end,
-		column_start=col_start, column_end=col_end,
-		data=grid_b + limiar_b
+		req_res=0, esp_ex=0, tipo=0, limiar=limiar,
+		source_port=8888, 
+		row_start=indices[0], col_start=indices[1],
+		row_end=indices[2], col_end=indices[3],
+		rrow_start=r_indices[0], rcol_start=r_indices[1],
+		rrow_end=r_indices[2], rcol_end=r_indices[3],
+		data_length=len(part_grid_b),
+		data=part_grid_b
 	)
 
 	t0_b = t0.to_bytes()
@@ -149,9 +162,9 @@ def handle_conn(
 	conn_s.sendall(t0_b)
 
 	t0_ans_b = b''
-	while len(t0_ans_b) < 24:
+	while len(t0_ans_b) < 40:
 		try:
-			t0_ans_b += conn_s.recv(24)
+			t0_ans_b += conn_s.recv(40)
 		except TimeoutError:
 			raise WorkerFailException()
 
@@ -166,37 +179,17 @@ def handle_conn(
 			# seguidas, remove o nó da rede
 			raise WorkerFailException()
 
-	grid_ans = t0_ans.data_from_bytes()
-
-	# agora recebe a flag que sinaliza existencia de espalhadores
-	esp_existe_b = b''
-	while len(esp_existe_b) < 1:
-		try:
-			esp_existe_b += conn_s.recv(1)
-		except TimeoutError:
-			# caso esteja unhealthy em duas rodadas
-			# seguidas, remove o nó da rede
-			raise WorkerFailException()
+	part_grid_ans = t0_ans.data_from_bytes()
 
 	# confirma que o nó está ativo na rede
 	workers[worker]['h'] = True
 
-	esp_existe = int.from_bytes(esp_existe_b)
-
-	# atualiza a grade base com os valores novos
-	i,j = row_start, col_start
-	while cel_count:
-		base_grid[i][j] = grid_ans[i][j]
-		if j+1 >= len(base_grid[i]):
-			j = 0
-			i += 1
-		else:
-			j += 1
-		cel_count -= 1
+	# chama a funcao de atualizar grade
+	base_grid = fakenews.update_grid(base_grid, part_grid_ans, indices)
 
 	# retorna se existem espalhadores na parte da tabela
 	# calculada pelo nó worker atual
-	return bool(esp_existe)
+	return bool(t0_ans.esp_ex)
 
 
 def setup_master_node():
@@ -261,8 +254,8 @@ def update_worker_list(workers, cel_count: int):
 	b_s.sendall(t1_b)
 
 	t1_ans_b = b''
-	while len(t1_ans_b) < 24:
-		t1_ans_b += b_s.recv(24)
+	while len(t1_ans_b) < 40:
+		t1_ans_b += b_s.recv(40)
 
 	t1_ans = tiny.Tiny.ffields_to_tinyobj(t1_ans_b)
 	while len(t1_ans.data) < t1_ans.data_length:
@@ -303,6 +296,7 @@ def update_worker_list(workers, cel_count: int):
 	active_workers = workers.keys()
 	for rem_worker in update_list[1]:
 		if rem_worker in active_workers:
+			workers[rem_worker]['s'].close()
 			del workers[rem_worker]
 
 # aqui ta errado porque nao ta atualizando a grade original
@@ -334,8 +328,8 @@ def backup_handle_conn(
 	for worker in healthy_workers:
 		try:
 			ans = handle_conn(
-				args[0], args[1], args[2],
-				args[3], args[4], args[5], args[6])
+				args[0], args[1], args[2], args[3],
+				args[4], args[5], args[6])
 			return ans
 		except WorkerFailException:
 			args[5][args[6]]['h'] = False
@@ -343,43 +337,57 @@ def backup_handle_conn(
 	raise WorkerFailException()
 
 def master_backup(args: tuple):
-	col_count = len(args[0][0])
+	
+	part_grid = args[1][0]
+	indices = args[1][1]
+	r_indices = args[1][2]
 
-	# calculo da posicao inicial da divisao de celulas
-	row_start = int(args[4] / col_count)
-	col_start = args[4] % col_count
+	part_grid_b = pickle.dumps(part_grid)
 
-	# calculo da posicao final da divisao de celulas
-	row_end = int((args[4]+(args[3]-1)) / col_count)
-	col_end = (args[4]+(args[3]-1)) % col_count
-
-	# so lembrando que agora row_end e column_end sao
-	# inclusivos no protocolo TinyGrid
 	t0 = tiny.Tiny(
-		tipo=0, req_res=0, source_port=8888,
-		data_length=len(grid_b),
-		row_start=row_start, row_end=row_end,
-		column_start=col_start, column_end=col_end,
-		data=args[1] + args[2]
+		req_res=0, esp_ex=0, tipo=0, limiar=args[2],
+		source_port=8888, 
+		row_start=indices[0], col_start=indices[1],
+		row_end=indices[2], col_end=indices[3],
+		rrow_start=r_indices[0], rcol_start=r_indices[1],
+		rrow_end=r_indices[2], rcol_end=r_indices[3],
+		data_length=len(part_grid_b),
+		data=part_grid_b
 	)
 
 	new_grid, esp_existe = fakenews.proxima_geracao_contar_estados(
-		t0, args[0], int.from_bytes(args[2])
+		t0, args[0]
 	)
 
-	# atualiza a grade base com os valores novos
-	i,j = row_start, col_start
-	cel_count = args[3]
-	while cel_count:
-		args[0][i][j] = new_grid[i][j]
-		if j+1 >= len(args[0][i]):
-			j = 0
-			i += 1
-		else:
-			j += 1
-		cel_count -= 1
+	base_grid = fakenews.update_grid(base_grid, new_grid, indices)
 
 	return bool(esp_existe)
+
+def clean_network(workers: dict):
+	'''
+	'''
+
+	# pacote do tipo 4
+	t = tiny.Tiny(req_res=0, tipo=4, source_port=8888)
+	t_b = t.to_bytes()
+
+	# libera o broker
+	b_s = socket.socket(
+		socket.AF_INET, 
+		socket.SOCK_STREAM, 
+		socket.IPPROTO_TCP
+	)
+	code = b_s.connect_ex(('localhost', 5555))
+	if code == 0:
+		b_s.sendall(t_b)
+	b_s.shutdown(socket.SHUT_RDWR)
+	b_s.close()
+
+	# libera os workers
+	active_workers_sockets = [w['s'] for w in workers.values()]
+	for s in active_workers_sockets:
+		s.sendall(t_b)
+		s.close()
 
 # o comando para rodar o script master.py recebe como argumento
 # de linha de comando os seguintes parâmetros:
@@ -451,6 +459,10 @@ if __name__ == '__main__':
 		active_workers = list(workers.keys())
 		len_active_workers = len(active_workers)
 
+		if len_active_workers == 0:
+			print('ERRO: NÃO HÁ WORKERS NA REDE')
+			sys.exit(1)
+
 		# divide a grade de acordo com a quantidade de workers
 		divisao_celulas = dividir_grade(grid, len_active_workers)
 
@@ -466,9 +478,13 @@ if __name__ == '__main__':
 		with ThreadPoolExecutor(max_workers=len_active_workers) as executor:
 			for i, worker in enumerate(active_workers):
 				args = (
-					grid, grid_b, int.to_bytes(limiar),
-					divisao_celulas[i], curr_pl, workers, 
-					worker
+					grid, 
+
+					fakenews.particionar_grade(
+						grid, divisao_celulas[i], curr_pl),
+
+					limiar, divisao_celulas[i], 
+					curr_pl, workers, worker
 				)
 
 				future = executor.submit(handle_conn,
@@ -539,6 +555,8 @@ if __name__ == '__main__':
 	end_time = datetime.now().timestamp()
 
 	exec_time = end_time - start_time
+
+	clean_network(workers)
 
 	print()
 	print('=== RESULTADO FINAL ===')

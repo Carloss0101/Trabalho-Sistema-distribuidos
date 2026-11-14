@@ -45,7 +45,7 @@ def req_tipo_um(tiny_pck: tiny.Tiny, node_update: list[list[int]]):
 
 	node_update_b = pickle.dumps(node_update)
 	packet = tiny.Tiny(
-		tipo=tiny_pck.tipo, req_res=1, source_port=5555,
+		req_res=1, tipo=tiny_pck.tipo, source_port=5555,
 		data_length=len(node_update_b),
 		data=node_update_b
 	).to_bytes()
@@ -81,7 +81,7 @@ def req_tipo_dois(tiny_pck: tiny.Tiny, node_update: list[list[int]]):
 	node_update[0].append(tiny_pck.source_port)
 
 	packet = tiny.Tiny(
-		tipo=tiny_pck.tipo, req_res=1, source_port=5555
+		req_res=1, tipo=tiny_pck.tipo, source_port=5555
 	).to_bytes()
 
 	print(f'ENTRADA DE NÓ - ({node_update[0][-1]})', end='\n\n')
@@ -114,7 +114,7 @@ def req_tipo_tres(tiny_pck: tiny.Tiny, node_update: list[list[int]]):
 	node_update[1].append(tiny_pck.source_port)
 
 	packet = tiny.Tiny(
-		tipo=tiny_pck.tipo, req_res=1, source_port=5555
+		req_res=1, tipo=tiny_pck.tipo, source_port=5555
 	).to_bytes()
 
 	print(f'SAÍDA DE NÓ - ({node_update[1][-1]})', end='\n\n')
@@ -135,12 +135,17 @@ def req_tipo_quatro(tiny_pck: tiny.Tiny):
 	'''
 
 	return tiny.Tiny(
-		tipo=tiny_pck.tipo, req_res=1, source_port=5555
+		req_res=1, tipo=tiny_pck.tipo, source_port=5555
 	).to_bytes()
 
 if __name__ == '__main__':
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
-	s.bind(('localhost', 5555))
+	while True:
+		try:
+			s.bind(('localhost', 5555))
+			break
+		except OSError:
+			pass
 	s.listen()
 
 	# node_update[0] -> novos nós
@@ -154,8 +159,8 @@ if __name__ == '__main__':
 
 		# recebe os campos fixos do pacote
 		tiny_pck_b = b''
-		while len(tiny_pck_b) < 24:
-			tiny_pck_b += conn_s.recv(24)
+		while len(tiny_pck_b) < 40:
+			tiny_pck_b += conn_s.recv(40)
 
 		# converte os bytes dos campos fixos em um objeto Tiny
 		tiny_pck = tiny.Tiny.ffields_to_tinyobj(tiny_pck_b)
@@ -173,12 +178,12 @@ if __name__ == '__main__':
 
 		if resp: conn_s.sendall(resp)
 
-		conn_s.shutdown(socket.SHUT_RDWR)
+		# conn_s.shutdown(socket.SHUT_RDWR)
 		conn_s.close()
 
 		if tiny_pck.tipo==4: break
 
 	print('BROKER (5555) saindo da rede...')
 
-	s.shutdown(socket.SHUT_RDWR)
+	# s.shutdown(socket.SHUT_RDWR)
 	s.close()

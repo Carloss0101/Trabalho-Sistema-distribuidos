@@ -4,21 +4,45 @@
 #    0                   1                   2                   3
 #    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 #   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#	| Tipo - 8 bits |ReqRes - 8 bits|    Source Port - 16 bits      |
-#	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#	|                        Data Length - 32 bits                  |
+#	|R|E|     |       |             |                               | 
+#	|e|s|     |       |             |                               |
+#	|q|p|     |       |             |                               |
+#	|R|E|Tipo |Limiar |   Padding   |          Source Port          |
+#	|e|x|     |       |             |                               |
+#	|s|s|     |       |             |                               |
 #   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#	|                        Row Start - 32 bits                    |
+#	|                   		Row Start                           |
 #	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#	|                        Row End - 32 bits                      |
-# 	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#	|                        Column Start - 32 bits                 |
+#	|                           Column Start                        |
 #	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#   |                        Column End - 32 bits                   |
+#	|                           Row End                             |
+#	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#	|                           Column End                          |
+#	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#	|                           R Row Start                         |
+#	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#	|                           R Column Start                      |
 #   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#	|					Data - Tamanho em bytes variavel
+#	|                           R Row End                           |
+#	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#	|                           R Column End                        |
+#	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#	|                           Data Length                         |
+#	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#	|                           Data                                
 #	+-+-+-+-+-+-+-+-+-+-+-+.............
+
+#	ReqRes: Indica se a mensagem é uma requisiçao ou uma resposta
+#			
+#			0 -> Requisição
+#			1 -> Resposta
 #
+#	EspExs: Indica se pelo menos um espalhador existe no resultado
+#			da computação realizada pelo worker. Enviado apenas na
+#			troca de mensagens do tipo 0 entre o master e o worker.
+#
+#			0 -> Espalhador não existe na parte calculada
+#			1 -> Espalhador existe na parte calculada
 #
 #	Tipo: Indica o tipo da mensagem. Pode ter qualquer valor de 0 a 4:
 #		
@@ -28,30 +52,89 @@
 #			3 -> Saída de um worker da rede
 #			4 -> Sinaliza fim da computacão
 #
-#	ReqRes: Indica se a mensagem é uma requisição ou resposta
+#	Limiar: Limiar de convencimento utilizado no cálculo do algoritmo.
+#			Enviado apenas na troca de mensagens do tipo 0 entre o mas-
+#			ter e o worker.
 #
-#			0 -> Requisição
-#			1 -> Resposta
+#			Valor -> 1 a 8
+#
+#	Padding: 7 bits 0 que servem apenas para preencher o pacote
 #
 #	Source Port: Porta do remetente. Essa porta é a porta que identifica o
 #				 nó na rede
 #
-#	Data Length: Indica o tamanho em bytes da grade enviada. Na requisicão, 
-#                será a grade gerada na computacão da geracão passada, que 
-#                servirá como base para o cálculo da nova geracão. Na resposta 
-#                será o resultado do cálculo da nova geracão
+#	Row Start: Indica o índice inicial da linha na grade base que gerou
+#			   a parte enviada para o nó worker. Ao juntar Row Start, 
+#			   Column Start, Row End e Column End, é possível obter a 
+#			   quantidade exata de células que o nó trabalhador terá
+#			   que calcular
 #
-#	Row Start: Indica o índice inicial da linha que dará origem à grade
-#			   que deverá ser computada. É inclusivo - 32 bits
+#	Row End: Indica o índice final da linha na grade base que gerou
+#			 a parte enviada para o nó worker. Ao juntar Row Start, 
+#			 Column Start, Row End e Column End, é possível obter a 
+#			 quantidade exata de células que o nó trabalhador terá
+#			 que calcular
 #
-#	Row End: Indica o índice final da linha que dará origem à grade que
-#			 deverá ser computada. É inclusivo
+#	Column Start: Indica o indice inicial da coluna na grade base que 
+#				  gerou a parte enviada para o nó worker. Ao juntar 
+#				  Row Start, Column Start, Row End e Column End, é pos-
+#				  sível obter a quantidade exata de células que o nó 
+#				  trabalhador terá que calcular
 #
-#	Column Start: Indica o indice inicial da coluna que dará origem à grade
-#				  que deverá ser computada. É inclusivo
+#	Column End: Indica o índice final da coluna na grade base que gerou a 
+#				parte enviada para o nó worker. Ao juntar Row Start, 
+#			    Column Start, Row End e Column End, é possível obter a 
+#			    quantidade exata de células que o nó trabalhador terá
+#			    que calcular
 #
-#	Column End: Indica o índice final da coluna que dará origem à grade 
-#				que deverá ser computada. É inclusivo			
+#	R Row Start: Indica o índice inicial da linha que gerou a parte enviada
+#				 para o nó worker, porém ele inclui a linha adicional que é
+#				 usada para calcular os vizinhos das células que ficam nas
+#				 bordas da parte da grade. Quando o valor for igual a 
+#				 (Row Start) - 1, existe uma linha adicional acima da primei-
+#				 ra linha da parte enviada ao nó worker. Quando o valor for
+#				 igual a Row Start, quer dizer que não existe uma linha adi-
+#				 cional acima da primeira linha da parte enviada ao nó wor-
+#				 ker, então a parte está na borda superior da grade original.
+#
+#	R Column Start: Indica o indice inicial da coluna que gerou a parte en-
+#					viada para o nó worker, porém ele inclui a coluna adicio-
+#					nal que é usada para calcular os vizinhos das células que
+#					ficam nas bordas da parte da grade. Quando o valor for i-
+#					gual a (Column Start) - 1, existe uma coluna adicional à
+#					esquerda da primeira coluna da parte enviada ao nó worker.
+#					Quando o valor for igual a Column Start, quer dizer que 
+#					não existe uma coluna adicional à esquerda da primeira co-
+#					luna na parte enviada ao nó worker, então a parte está na
+#					borda esquerda da grade original.
+#
+#	R Row End: Indica o indice final da linha que gerou a parte enviada para o
+#			   nó worker, porém ele inclui a linha adicional que é usada para
+#			   calcular os vizinhos das células que ficam nas bordas da parte
+#			   da grade. Quando o valor for igual a (Row End) + 1, existe uma
+#			   linha adicional abaixo da última linha da parte enviada ao nó
+#			   worker. Quando o valor for igual a Row end, quer dizer que não
+#			   existe uma linha adicional abaixo da última linha na parte en-
+#			   viada ao nó worker, então a parte está na borda inferior da
+#			   grade original.
+#
+#	R Column End: Indica o indice final da coluna que gerou a parte enviada
+#				  para o nó worker, porém ele inclui a coluna adicional que
+#				  é usada para calcular os vizinhos das células que ficam nas
+#				  bordas da parte da grade. Quando o valor for igual a 
+#				  (Column End) + 1, existe uma coluna adicional à direita da
+#				  última coluna da parte enviada ao nó worker. Quando o valor
+#				  for igual a Column End, quer dizer que não existe uma coluna
+#				  adicional à direita da última coluna na parte enviada ao nó
+#				  worker, então a parte está na borda direita da 
+#				  grade original.
+#
+#	Data Length: Indica o tamanho em bytes da parte da grade enviada. Na requi-
+#				 sicão, será a parte da grade gerada a partir do resultado da
+#				 geração anterior. Na resposta, será a parte da grade com os
+#				 valores atualizados. Lembrando que na resposta a grade envi-
+#				 ada não vai conter os vizinhos adicionais usados no cálculo,
+#				 ja que eles não são mais necessários.
 #
 #	Data: Os dados enviados no pacote. Na requisicão, será a grade base para
 #		  computacão da grade da nova geracão. Na resposta, será a grade re-
@@ -106,55 +189,86 @@ class Tiny:
 	"""
 
 	def __init__(self,
-		tipo:         int,
 		req_res:      int,
+		tipo:         int,
 		source_port:  int,
-		data_length:  int   = 0,
+		esp_ex:       int   = 0,
+		limiar:       int   = 0, # depois disso tem um padding de 7 bits 0
 		row_start:    int   = 0,
+		col_start:    int   = 0,
 		row_end:      int   = 0,
-		column_start: int   = 0,
-		column_end:   int   = 0,
+		col_end:      int   = 0,
+		rrow_start:   int   = 0,
+		rcol_start:   int   = 0,
+		rrow_end:     int   = 0,
+		rcol_end:     int   = 0,
+		data_length:  int   = 0,
 		data:         bytes = b''):
 		'''
 		Parameters
 		----------
-		tipo : int
-			Tipo da mensagem. Pode ter valores de 0 a 4
-		req_res : int
-			Indica Requisição (0) ou Resposta (1)
-		source_port : int
-			Porta que representa o nó que está enviando
-			o pacote
-		data_length : int, optional
-			Tamanho em bytes da grade sendo enviada no pacote
-		row_start : int, optional
-			Indice inicial da linha da grade que o nó worker é responsável por
-			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem 
-			que o tipo não é 0
-		row_end : int, optional
-			Indice final da linha da grade que o nó worker é responsável por
-			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem 
-			que o tipo não é 0
-		column_start : int, optional
-			Indice inicial da coluna da grade que o nó worker é responsável por
-			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem 
-			que o tipo não é 0
-		column_end : int, optional
-			Indice final da coluna da grade que o nó worker é responsável por
-			calcular para a próxima geracão. Deve ser 0 em qualquer mensagem 
-			que o tipo não é 0
-		data : bytes, optional
-			Grade a ser enviada no pacote em formato binário.
+		req_res: int
+			indica requisição ou resposta
+		esp_ex: int, optional
+			indica a existência de espalhadores. Deve ser 0 em qualquer
+			troca de mensagens que não seja do tipo 0
+		tipo: int
+			tipo da mensagem
+		limiar: int, optional
+			limiar de convencimento. Deve ser 0 em qualquer troca de
+			mensagens que não seja do tipo 0
+		source_port: int
+			porta identificadora na rede do nó que enviou o pacote
+		row_start: int, optional
+			indice de linha inicial que deu origem à parte da grade. Deve ser 
+			0 em qualquer troca de mensagens que não seja do tipo 0
+		col_start: int, optional
+			indice de coluna inicial que deu origem à parte da grade. Deve
+			ser 0 em qualque troca de mensagens que não seja do tipo 0
+		row_end: int, optional
+			indice de linha final que deu origem à parte da grade. Deve
+			ser 0 em qualquer troca de mensagens que não seja do tipo 0
+		col_end: int, optional
+			indice de coluna final que deu origem à parte da grade. Deve
+			ser 0 em qualquer troca de mensagens que não seja do tipo 0
+		rrow_start: int, optional
+			indice de linha inicial que deu origem à parte da grade. Já 
+			expliquei a diferenca desse pro row_start. Deve ser 0 em qualquer
+			troca de mensagens que não seja do tipo 0
+		rcol_start: int, optional
+			indice de coluna inicial que deu origem à parte da grade. Já 
+			expliquei a diferença desse pro col_start. Deve ser 0 em qualquer
+			troca de mensagens que não seja do tipo 0
+		rrow_end: int, optional
+			indice de linha final que deu origem à parte da grade. Já expliquei
+			a diferença desse pro row_end. Deve ser 0 em qualquer troca de 
+			mensagens que não seja do tipo 0
+		rcol_end: int, optional
+			indice de coluna final que deu origem à parte da grade. Já expli-
+			quei a diferença desse pro col_end. Deve ser 0 em qualquer troca
+			de mensagens que não seja do tipo 0
+		data_length: int, optional
+			tamanho em bytes da parte da grade enviada. Deve ser 0 em qualquer
+			troca de mensagens que não seja do tipo 0
+		data: bytes
+			parte da grade enviada. Deve ser b'' em qualquer troca de mensa-
+			gens que não seja do tipo 0
 		'''
 
-		self.tipo         = tipo
 		self.req_res      = req_res
+		self.esp_ex       = esp_ex
+		self.tipo         = tipo
+		self.limiar       = limiar
 		self.source_port  = source_port
-		self.data_length  = data_length if data_length else len(data)
 		self.row_start    = row_start
+		self.col_start    = col_start
 		self.row_end      = row_end
-		self.column_start = column_start
-		self.column_end   = column_end
+		self.col_end      = col_end
+		self.rrow_start   = rrow_start
+		self.rcol_start   = rcol_start
+		self.rrow_end     = rrow_end
+		self.rcol_end     = rcol_end
+		self.data_length  = data_length if data_length else len(data)
 		self.data         = data
 
 	def to_bytes(self):
@@ -168,14 +282,40 @@ class Tiny:
 			TinyGrid. Pode ou não conter uma grade no campo Data
 		'''
 
+		# valor que juntará os 5 primeiros campos
+		# (req_res, esp_ex, tipo, limiar e padding)
+		init_2_byte = 0
+
+		# adiciona o valor de req_res
+		init_2_byte ^= self.req_res
+
+		# left shit 1 bit e adiciona o valor de esp_ex
+		init_2_byte <<= 1
+		init_2_byte ^= self.esp_ex
+
+		# left shit 3 bits e adiciona o valor de tipo
+		init_2_byte <<= 3
+		init_2_byte ^= self.tipo
+
+		# left shift 4 bits e adiciona o valor de limiar
+		init_2_byte <<= 4
+		init_2_byte ^= self.limiar
+
+		# left shift de 7 bits para o padding
+		init_2_byte <<= 7
+
 		tiny_packet = struct.pack(
-			'!BBHIIIII',
-			self.tipo, self.req_res, self.source_port,
-			self.data_length,
-			self.row_start,    
+			'!HHIIIIIIIII',
+			init_2_byte, self.source_port,
+			self.row_start,
+			self.col_start,
 			self.row_end,
-			self.column_start, 
-			self.column_end
+			self.col_end,
+			self.rrow_start,
+			self.rcol_start,
+			self.rrow_end,
+			self.rcol_end,
+			self.data_length
 		)
 
 		if self.data: tiny_packet += self.data
@@ -267,68 +407,41 @@ class Tiny:
 		'''
 		
 		data = struct.unpack(
-			'!BBHIIIII',
+			'!HHIIIIIIIII',
 			 packet
 		)
 
+		# extrai os 2 primeiros bytes pra separar os campos
+		init_2_byte = data[0]
+
+		# retira o padding
+		init_2_byte >>= 7
+
+		# extrai o limiar
+		limiar = init_2_byte & 0xF
+		init_2_byte >>= 4
+
+		# extrai o tipo
+		tipo = init_2_byte & 0x7
+		init_2_byte >>= 3
+
+		# extrai o esp_ex
+		esp_ex = init_2_byte & 0x1
+		init_2_byte >>= 1
+
+		# extrai o req_res
+		req_res = init_2_byte & 0x1
+
 		return Tiny(
-			tipo=data[0], req_res=data[1], source_port=data[2],
-			data_length=data[3],
-			row_start=data[4],
-			row_end=data[5],
-			column_start=data[6],
-			column_end=data[7])
-
-
-# O CÓDIGO ABAIXO SERVE APENAS PARA TESTES
-if __name__ == '__main__':
-
-	# FLUXO DE MONTAGEM DO PACOTE DE ENVIO DA GRADE
-	#########################################################
-	GRID_req = pickle.dumps([
-		[1,1,1],
-		[1,1,1],
-		[1,1,1]
-	])
-	TIPO_req = 0
-	REQRES_req = 0
-	SOURCEPORT_req = 5555
-	ROWSTART_req = 0
-	ROWEND_req = 2
-	COLUMNSTART_req = 0
-	COLUMNEND_req = 2
-
-	tiny_pck = Tiny(
-		tipo=TIPO_req,
-		req_res=REQRES_req,
-		source_port=SOURCEPORT_req,
-		row_start=ROWSTART_req,
-		row_end=ROWEND_req,
-		column_start=COLUMNSTART_req,
-		column_end=COLUMNEND_req,
-		data=GRID_req
-	)
-
-	tiny_pck_b = tiny_pck.to_bytes()
-	#########################################################
-
-	# aqui seria o envio dos bytes por meio de sockets
-
-	# FLUXO DE DESEMPACOTAMENTO DO PACOTE CONTENDO A GRADE
-	#########################################################
-	# Os campos fixos tem um tamanho total de 24 bytes
-	fixed_fields_b = tiny_pck_b[:24]
-	tiny_pck = Tiny.ffields_to_tinyobj(fixed_fields_b)
-	print(tiny_pck.tipo, tiny_pck.req_res, tiny_pck.source_port)
-	print(tiny_pck.data_length)
-	print(tiny_pck.row_start)
-	print(tiny_pck.row_end)
-	print(tiny_pck.column_start)
-	print(tiny_pck.column_end, end='\n\n')
-
-	# converte a grade separadamente, como foi dito
-	tiny_pck.data = tiny_pck_b[24:]
-	if tiny_pck.has_data():
-		grid = tiny_pck.data_from_bytes()
-	print(grid)
-	#########################################################
+			req_res=req_res, esp_ex=esp_ex, tipo=tipo, 
+			limiar=limiar, source_port=data[1],
+			row_start=data[2],
+			col_start=data[3],
+			row_end=data[4],
+			col_end=data[5],
+			rrow_start=data[6],
+			rcol_start=data[7],
+			rrow_end=data[8],
+			rcol_end=data[9],
+			data_length=data[10]
+		)

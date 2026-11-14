@@ -226,8 +226,8 @@ def executar_simulacao(
 
 if __name__ == "__main__":
     executar_simulacao(
-        linhas=150,
-        colunas=150,
+        linhas=300,
+        colunas=300,
         geracoes=50,
         pct_influenciadores=0.01,
         pct_espalhadores=0.05,
