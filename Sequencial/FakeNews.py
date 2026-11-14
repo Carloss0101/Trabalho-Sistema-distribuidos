@@ -18,7 +18,10 @@ def criar_grade(
     pct_influenciadores=0.01, 
     pct_resistentes=0.1):
 
+<<<<<<< HEAD
     #random.seed(datetime.now().timestamp())
+=======
+>>>>>>> ca868ca503b69a9b841be77fd50c091bdcfa5855
     random.seed(1)
 
     grade = [[IGNORANTE for _ in range(colunas)] for _ in range(linhas)]
@@ -201,9 +204,9 @@ def executar_simulacao(
 
         if mostrar_grade: imprimir_grade(grade)
 
-        if not contagem[ESPALHADOR]:
-            print("\nA propagação terminou: não há mais espalhadores.")
-            break
+        # if not contagem[ESPALHADOR]:
+        #     print("\nA propagação terminou: não há mais espalhadores.")
+        #     break
 
     fim = datetime.now().timestamp()
 
@@ -226,6 +229,7 @@ def executar_simulacao(
 
 if __name__ == "__main__":
     executar_simulacao(
+<<<<<<< HEAD
         linhas=10000,
         colunas=10000,
         geracoes=50,
@@ -235,3 +239,13 @@ if __name__ == "__main__":
         limiar_convencimento=2,
         mostrar_grade=True
     )
+=======
+            linhas=200,
+            colunas=450,
+            geracoes=50,
+            pct_influenciadores=0.01,
+            pct_espalhadores=0.05,
+            pct_resistentes=0.1,
+            limiar_convencimento=2,
+        )
+>>>>>>> ca868ca503b69a9b841be77fd50c091bdcfa5855
