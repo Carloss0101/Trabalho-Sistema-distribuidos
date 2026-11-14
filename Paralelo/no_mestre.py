@@ -148,8 +148,8 @@ def executar_paralelo(linhas=1000, colunas=1000, nw=4, seed=1,
 
 if __name__ == "__main__":
     executar_paralelo(
-        linhas=10000,
-        colunas=10000,
+        linhas=200,
+        colunas=200,
         geracoes=50,
         pct_influenciadores=0.01,
         pct_espalhadores=0.05,
