@@ -62,3 +62,42 @@ Os valores padrão da execução principal estão definidos no bloco `if __name_
 ## Escopo atual
 
 Os arquivos presentes neste repositório incluem a implementação sequencial descrita acima. Qualquer implementação paralela ou distribuída deverá ser documentada separadamente quando estiver disponível.
+
+
+## Interface gráfica da versão paralela
+
+O projeto possui uma interface gráfica desenvolvida com Python e Tkinter para facilitar a configuração e execução da simulação paralela.
+
+A interface permite modificar os parâmetros do algoritmo antes de iniciar a execução, sem precisar alterar diretamente o código-fonte.
+
+### Funcionalidades
+
+- Configuração do número de linhas e colunas da matriz.
+- Definição da quantidade máxima de gerações.
+- Escolha da quantidade de processos paralelos.
+- Configuração dos percentuais iniciais de espalhadores, influenciadores e resistentes.
+- Definição do limiar de convencimento.
+- Configuração da semente aleatória.
+- Validação dos parâmetros informados.
+- Exibição do tempo de execução e dos resultados.
+- Visualização gráfica da distribuição final da população.
+
+### Instalação das dependências
+
+Com o Python instalado, execute na raiz do projeto:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+### Como executar
+
+Na raiz do projeto, execute:
+
+```bash
+python Paralelo/interface.py
+```
+
+Será aberta uma janela para configurar os parâmetros e executar a simulação paralela.
+
+Os resultados são apresentados em duas abas: Relatório e Gráfico.

@@ -144,7 +144,18 @@ def executar_paralelo(linhas=1000, colunas=1000, nw=4, seed=1,
     print(f"Resistentes:     {contagem[RESISTENTE]:,} ({contagem[RESISTENTE] / total * 100:.2f}%)")
     print(f"Influenciadores: {contagem[INFLUENCIADOR]:,} ({contagem[INFLUENCIADOR] / total * 100:.2f}%)")
     print(f"Inativos:        {contagem[INATIVO]:,} ({contagem[INATIVO] / total * 100:.2f}%)")
-
+    return {
+        "geracao_final": geracao_parada.value,
+        "tempo_total": tempo_total,
+        "total": total,
+        "contagem": {
+            "Ignorantes": contagem[IGNORANTE],
+            "Espalhadores": contagem[ESPALHADOR],
+            "Inativos": contagem[INATIVO],
+            "Influenciadores": contagem[INFLUENCIADOR],
+            "Resistentes": contagem[RESISTENTE]
+        }
+    }
 
 if __name__ == "__main__":
     executar_paralelo(
