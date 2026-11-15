@@ -61,7 +61,7 @@ Os valores padrão da execução principal estão definidos no bloco `if __name_
 
 ## Escopo atual
 
-Os arquivos presentes neste repositório incluem a implementação sequencial descrita acima. Qualquer implementação paralela ou distribuída deverá ser documentada separadamente quando estiver disponível.
+O repositório contém as implementações sequencial, paralela e distribuída da simulação de propagação de fake news. A interface gráfica documentada a seguir permite configurar e executar a versão paralela.
 
 
 ## Interface gráfica da versão paralela
