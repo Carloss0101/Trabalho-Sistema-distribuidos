@@ -49,7 +49,7 @@ def worker(k, ini, fim, barreira, bufA, bufB, linhas, colunas, geracoes, limiar,
     atual, proximo = bufA, bufB
 
     for g in range(geracoes):
-        teve_mudanca = 0 
+        teve_mudanca = False
 
         for i in range(ini, fim):
             for j in range(colunas):
@@ -64,7 +64,7 @@ def worker(k, ini, fim, barreira, bufA, bufB, linhas, colunas, geracoes, limiar,
 
                 #em caso de mudança, troca pra 1
                 if novo_estado != estado_atual:
-                    teve_mudanca = 1
+                    teve_mudanca = True
 
         #anota alteracao(0 ou 1)
         mudancas[k] = teve_mudanca
