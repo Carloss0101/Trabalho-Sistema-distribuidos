@@ -1,3 +1,5 @@
+count_lin, count_col, count_ger, pct_inf, pct_esp, pct_res, limiar, mostrar_grade, exec_time, final_ign, final_esp, final_inat, final_inf, final_res
+
 400, 400, 100, 0.01, 0.05, 0.1, 1, False, 1.416573419002816, 0, 0, 147800, 2269, 9931
 400, 400, 100, 0.01, 0.05, 0.1, 2, False, 4.471813290991122, 36109, 0, 112706, 2578, 8607
 400, 400, 100, 0.01, 0.05, 0.1, 3, False, 0.9786412509856746, 115418, 0, 28481, 1638, 14463
