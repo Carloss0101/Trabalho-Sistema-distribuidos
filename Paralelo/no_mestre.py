@@ -6,6 +6,8 @@ import random
 from multiprocessing import RawArray, RawValue, Process, Barrier
 from worker import worker
 import time
+import sys
+from pathlib import Path
 
 IGNORANTE = 0
 ESPALHADOR = 1
@@ -18,7 +20,7 @@ Função responsável por criar a matriz, inicialmente todas as celulas com stat
 espalhadores, influenciados e resistentes de acordo com a porcentagem de cada.
 '''
 def criar_grade(linhas, colunas, seed, pct_espalhadores=0.02, pct_influenciadores=0.01, pct_resistentes=0.1):
-    random.seed(seed)
+    random.seed(1)
 
     grade = [[IGNORANTE for _ in range(colunas)] for _ in range(linhas)]
 
@@ -76,7 +78,6 @@ def dividir_linhas(total_linhas, num_workers):
         linha_inicial = linha_final   #a próxima faixa começa onde esta terminou
 
     return faixas
-
 
 def executar_paralelo(linhas=1000, colunas=1000, nw=4, seed=1,
                       pct_espalhadores=0.05, pct_influenciadores=0.01,
@@ -157,13 +158,25 @@ def executar_paralelo(linhas=1000, colunas=1000, nw=4, seed=1,
         }
     }
 
+
 if __name__ == "__main__":
-    executar_paralelo(
-        linhas=200,
-        colunas=200,
-        geracoes=50,
-        pct_influenciadores=0.01,
-        pct_espalhadores=0.05,
-        pct_resistentes=0.1,
-        limiar_convencimento=2,
+    if len(sys.argv) != 8:
+        sys.exit(1)
+
+    count_lin=int(sys.argv[1])
+    count_col=int(sys.argv[2])
+    count_ger=int(sys.argv[3])
+    pct_inf=float(sys.argv[4])
+    pct_esp=float(sys.argv[5])
+    pct_res=float(sys.argv[6])
+    limiar=int(sys.argv[7])
+
+    results = executar_paralelo(
+        linhas=count_lin,
+        colunas=count_col,
+        geracoes=count_ger,
+        pct_influenciadores=pct_inf,
+        pct_espalhadores=pct_esp,
+        pct_resistentes=pct_res,
+        limiar_convencimento=limiar,
     )
