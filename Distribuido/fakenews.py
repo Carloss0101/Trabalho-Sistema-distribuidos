@@ -293,32 +293,32 @@ def proxima_geracao_contar_estados(
 		for cj in range(len(clean_grid[ci])):
 			
 			# otimizacao 
-			#if clean_grid[ci][cj] != INATIVO:
+			if clean_grid[ci][cj] != INATIVO:
 
-			vizinhos = contar_vizinhos(base_grid, i, j)
+				vizinhos = contar_vizinhos(base_grid, i, j)
 
-			if base_grid[i][j] == IGNORANTE:
-				if (vizinhos[ESPALHADOR] >= tiny_pck.limiar or
-					vizinhos[INFLUENCIADOR] >= 1):
-					clean_grid[ci][cj] = ESPALHADOR
+				if base_grid[i][j] == IGNORANTE:
+					if (vizinhos[ESPALHADOR] >= tiny_pck.limiar or
+						vizinhos[INFLUENCIADOR] >= 1):
+						clean_grid[ci][cj] = ESPALHADOR
 
-			elif base_grid[i][j] == ESPALHADOR:
-				if (vizinhos[ESPALHADOR] >= tiny_pck.limiar and
-					vizinhos[INFLUENCIADOR] >= 1):
-					clean_grid[ci][cj] = INFLUENCIADOR
-				else:
-					clean_grid[ci][cj] = INATIVO
+				elif base_grid[i][j] == ESPALHADOR:
+					if (vizinhos[ESPALHADOR] >= tiny_pck.limiar and
+						vizinhos[INFLUENCIADOR] >= 1):
+						clean_grid[ci][cj] = INFLUENCIADOR
+					else:
+						clean_grid[ci][cj] = INATIVO
 
-			elif base_grid[i][j] == INFLUENCIADOR:
-				if (not vizinhos[IGNORANTE]  and
-					not vizinhos[ESPALHADOR] and
-					not vizinhos[RESISTENTE]):
-					clean_grid[ci][cj] = INATIVO
+				elif base_grid[i][j] == INFLUENCIADOR:
+					if (not vizinhos[IGNORANTE]  and
+						not vizinhos[ESPALHADOR] and
+						not vizinhos[RESISTENTE]):
+						clean_grid[ci][cj] = INATIVO
 
-			elif base_grid[i][j] == RESISTENTE:
-				if (vizinhos[ESPALHADOR] >= tiny_pck.limiar and
-					vizinhos[INFLUENCIADOR] >= 1):
-					clean_grid[ci][cj] = ESPALHADOR
+				elif base_grid[i][j] == RESISTENTE:
+					if (vizinhos[ESPALHADOR] >= tiny_pck.limiar and
+						vizinhos[INFLUENCIADOR] >= 1):
+						clean_grid[ci][cj] = ESPALHADOR
 
 			estados_count[clean_grid[ci][cj]] += 1
 

@@ -193,6 +193,6 @@ if __name__ == '__main__':
 
 		if tiny_pck.tipo==4: break
 
-	print('BROKER (5555) saindo da rede...')
+	print('BROKER (5555) SAINDO DA REDE...')
 
 	s.close()

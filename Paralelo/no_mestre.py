@@ -7,7 +7,6 @@ from multiprocessing import RawArray, RawValue, Process, Barrier
 from worker import worker
 import time
 import sys
-from pathlib import Path
 
 IGNORANTE = 0
 ESPALHADOR = 1
