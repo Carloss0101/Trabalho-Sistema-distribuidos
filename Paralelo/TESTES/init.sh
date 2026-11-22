@@ -10,6 +10,8 @@ for count in 100 200 300 400 500; do
 
 				PYTHON_GIL=0 python3.15t ../no_mestre.py "$count" "$count" 100 "$inf" "$esp" 0.1 "$limiar"
 
+				sleep 1s
+
 			done
 
 		done

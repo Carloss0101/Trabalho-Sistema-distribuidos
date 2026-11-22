@@ -2,7 +2,7 @@
 
 python3.15t broker.py &
 
-for i in {1..10}; do
+for i in {1..5}; do
 
 	python3.15t worker.py  &
 	sleep 0.2s
