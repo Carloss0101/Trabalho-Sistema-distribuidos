@@ -232,7 +232,7 @@ if __name__ == "__main__":
 
     count_lin=int(sys.argv[1])
     count_col=int(sys.argv[2])
-    count_get=int(sys.argv[3])
+    count_ger=int(sys.argv[3])
     pct_inf=float(sys.argv[4])
     pct_esp=float(sys.argv[5])
     pct_res=float(sys.argv[6])
@@ -240,7 +240,7 @@ if __name__ == "__main__":
 
     executar_simulacao(
     	linhas=count_lin,
-        colunas=count-col,
+        colunas=count_col,
         geracoes=count_ger,
         pct_influenciadores=pct_inf,
         pct_espalhadores=pct_esp,
