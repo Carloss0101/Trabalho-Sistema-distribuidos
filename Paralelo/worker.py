@@ -53,7 +53,7 @@ def worker(k, ini, fim, barreira, bufA, bufB, linhas, colunas, geracoes, limiar,
     atual, proximo = bufA, bufB
 
     for g in range(geracoes):
-        teve_mudanca = False
+        esp_ex = False
 
         for i in range(ini, fim):
             for j in range(colunas):
@@ -67,11 +67,11 @@ def worker(k, ini, fim, barreira, bufA, bufB, linhas, colunas, geracoes, limiar,
                 proximo[indice] = novo_estado
 
                 #em caso de mudança, troca pra 1
-                if novo_estado != estado_atual:
-                    teve_mudanca = True
+                if novo_estado == ESPALHADOR:
+                    esp_ex = True
 
         #anota alteracao(0 ou 1)
-        mudancas[k] = teve_mudanca
+        mudancas[k] = esp_ex
 
         #espera todos os workers terminarem a geracao antes de continuar
         barreira.wait()
