@@ -26,7 +26,7 @@ def nova_celula(buf, i, j, linhas, colunas, limiar):
     estado = buf[i * colunas + j]
 
     # otimizacao
-    # if estado == INATIVO: return INATIVO
+    if estado == INATIVO: return INATIVO
 
     viz = contar_vizinhos(buf, i, j, linhas, colunas)
 

@@ -79,7 +79,7 @@ def dividir_linhas(total_linhas, num_workers):
 
     return faixas
 
-def executar_paralelo(linhas=1000, colunas=1000, nw=4, seed=1,
+def executar_paralelo(linhas=1000, colunas=1000, nw=5, seed=1,
                       pct_espalhadores=0.05, pct_influenciadores=0.01,
                       pct_resistentes=0.1, geracoes=50, limiar_convencimento=2):
     nw = min(nw, linhas)
@@ -180,3 +180,19 @@ if __name__ == "__main__":
         pct_resistentes=pct_res,
         limiar_convencimento=limiar,
     )
+
+    file = f'/home/feliperdummer/Documents/faculdade/2026-2' + \
+           f'/sistemas_distribuidos/trabalho_final/Paralelo/TESTES' + \
+           f'/test_results_{count_lin}x{count_col}.csv'
+
+    with open(file, 'at') as file:
+        file.write(
+            f'{count_lin}, {count_col}, {count_ger}, {pct_inf}, {pct_esp}, '+
+            f'{pct_res}, {limiar}, {False}, {results['tempo_total']}, '+
+            f'{results['contagem']['Ignorantes']}, '+
+            f'{results['contagem']['Espalhadores']}, '+
+            f'{results['contagem']['Inativos']}, '+
+            f'{results['contagem']['Influenciadores']}, '+
+            f'{results['contagem']['Resistentes']}\n'
+        )
+
