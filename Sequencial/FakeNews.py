@@ -74,6 +74,9 @@ def proxima_geracao(grade, limiar_convencimento=2):
     for i in range(len(grade)):
         for j in range(len(grade[i])):
 
+            # otimizacao
+            # if grade[i][j] == INATIVO: continue
+
             vizinhos = contar_vizinhos(grade, i, j)
 
             if grade[i][j] == IGNORANTE:

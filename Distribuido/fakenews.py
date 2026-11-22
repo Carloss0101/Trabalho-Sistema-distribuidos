@@ -291,6 +291,10 @@ def proxima_geracao_contar_estados(
 	i, j = i_start, j_start
 	for ci in range(len(clean_grid)):
 		for cj in range(len(clean_grid[ci])):
+			
+			# otimizacao 
+			#if clean_grid[ci][cj] != INATIVO:
+
 			vizinhos = contar_vizinhos(base_grid, i, j)
 
 			if base_grid[i][j] == IGNORANTE:
