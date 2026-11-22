@@ -1,4 +1,4 @@
-import random
+import random, sys
 import time
 from datetime import datetime
 from copy import deepcopy
@@ -224,12 +224,23 @@ def executar_simulacao(
     print("=======================\n")
 
 if __name__ == "__main__":
+    if len(sys.argv) != 8:
+        sys.exit(1)
+
+    count_lin=int(sys.argv[1])
+    count_col=int(sys.argv[2])
+    count_get=int(sys.argv[3])
+    pct_inf=float(sys.argv[4])
+    pct_esp=float(sys.argv[5])
+    pct_res=float(sys.argv[6])
+    limiar=int(sys.argv[7])
+
     executar_simulacao(
-    	linhas=200,
-        colunas=200,
-        geracoes=50,
-        pct_influenciadores=0.01,
-        pct_espalhadores=0.05,
-        pct_resistentes=0.1,
-        limiar_convencimento=2,
+    	linhas=count_lin,
+        colunas=count-col,
+        geracoes=count_ger,
+        pct_influenciadores=pct_inf,
+        pct_espalhadores=pct_esp,
+        pct_resistentes=pct_res,
+        limiar_convencimento=limiar,
 	)
