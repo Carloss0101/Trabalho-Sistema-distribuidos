@@ -165,8 +165,6 @@ def handle_conn(
 		try:
 			t0_ans.data += conn_s.recv(t0_ans.data_length)
 		except TimeoutError:
-			# caso esteja unhealthy em duas rodadas
-			# seguidas, remove o nó da rede
 			raise WorkerFailException()
 
 	part_grid_ans = t0_ans.data_from_bytes()
@@ -380,7 +378,7 @@ def master_backup(args: tuple):
 		t0, args[0]
 	)
 
-	base_grid = fakenews.update_grid(base_grid, new_grid, indices)
+	fakenews.update_grid(args[0], new_grid, indices)
 
 	return bool(esp_existe)
 
@@ -520,7 +518,7 @@ if __name__ == '__main__':
 					if args[5][args[6]]['h'] == False:
 						del args[5][args[6]]
 					else:
-						args[5][args[6]] = False
+						args[5][args[6]]['h'] = False
 
 					future = executor.submit(
 						backup_handle_conn, 
