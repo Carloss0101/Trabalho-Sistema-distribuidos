@@ -275,7 +275,6 @@ def update_worker_list(workers: dict, cel_count: int):
 		code = s.connect_ex(('localhost', new_worker))
 
 		if code != 0:
-			s.shutdown(socket.SHUT_RDWR)
 			s.close()
 			continue
 
@@ -409,7 +408,6 @@ def clean_network(workers: dict):
 	code = b_s.connect_ex(('localhost', 5555))
 	if code == 0:
 		b_s.sendall(t_b)
-	b_s.shutdown(socket.SHUT_RDWR)
 	b_s.close()
 
 	# libera os workers
