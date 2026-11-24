@@ -70,7 +70,7 @@ python3.15 interface.py
 
 para executar através da interface gráfica
 
-## Como executar a versão Paralela
+## Como executar a versão Distribuída
 
 Vá até o diretório `Distribuido/nodes` e execute
 
